@@ -21,6 +21,7 @@ Dữ liệu được sử dụng trong dự án là **Bean Leaf Lesions Classifi
 * **Số lớp (Classes):** 3 lớp (Bao gồm 2 loại bệnh và lá khỏe mạnh).
 * **Đặc điểm:** Ảnh chụp lá đậu với các điều kiện ánh sáng và góc chụp khác nhau.
 
+* **Data segmentation** : https://universe.roboflow.com/alebachew-m/final_instance_segmentation
 ##  Các mô hình được sử dụng (Model Architectures)
 
 1. **CNN tự build (BeanLeafVGG):** Mạng CNN cổ điển với kiến trúc sâu, dùng làm baseline.
