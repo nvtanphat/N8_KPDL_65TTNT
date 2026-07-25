@@ -176,6 +176,43 @@ Sau đó truy cập ứng dụng tại: `http://localhost:8501`.
 
 ---
 
+## 📈 Kết quả Thực nghiệm & Đánh giá (Experimental Results)
+
+Dưới đây là tổng hợp kết quả đánh giá thực nghiệm chi tiết trích xuất từ báo cáo ([`reports/N8_report.pdf`](reports/N8_report.pdf)) trên cùng tập dữ liệu kiểm thử:
+
+### 1. Phân loại bệnh (Classification Performance)
+
+#### Bảng so sánh tổng hợp các chỉ số hiệu năng trên tập Kiểm thử:
+
+| Mô hình (Model) | Accuracy | Precision | Recall | F1-Score | Số tham số | Đặc điểm chính |
+|---|:---:|:---:|:---:|:---:|:---:|---|
+| **DeiT-Small** (ViT) | **100.00%** | **100.00%** | **100.00%** | **100.00%** | ~21.8M | Đạt kết quả SOTA tuyệt đối nhờ cơ chế Self-Attention khai thác ngữ cảnh toàn cục. |
+| **BeanLeafVGG** (Custom CNN) | **99.25%** | **99.00%** | **99.00%** | **99.00%** | ~4.7M | CNN tự xây dựng từ scratch với kết quả xuất sắc dù không dùng weights pretrained. |
+| **EfficientNet-B3** | **99.25%** | **99.00%** | **99.00%** | **99.00%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng giữa độ chính xác và số lượng tham số. |
+| **MobileNetV3-Large** | **98.50%** | **98.00%** | **98.00%** | **98.00%** | ~3.2M | Mô hình siêu nhẹ, tối ưu cho ứng dụng thời gian thực và thiết bị di động / edge. |
+
+#### Độ ổn định qua 5-Fold Cross-Validation:
+
+| Mô hình (Model) | Độ chính xác trung bình (5-Fold CV) |
+|---|:---:|
+| **DeiT-Small** | **98.29% ± 0.47%** |
+| **BeanLeafVGG** (CNN tự xây) | **97.10%** |
+| **MobileNetV3-Large** | **96.57% ± 0.80%** |
+
+---
+
+### 2. Phân vùng bệnh (YOLOv8-seg Instance Segmentation)
+
+- **Box mAP@0.5:** 68.0%
+- **Mask mAP@0.5:** 68.0% | **Mask mAP@0.5:0.95:** 48.4%
+- **Mask mAP@0.5 theo từng lớp:**
+  - `healthy` (Lá khỏe mạnh): **93.0%** (Ranh giới viền lá rõ ràng)
+  - `angular_leaf_spot` (Đốm góc): **65.0%** (Đốm vết bệnh lớn dạng hình đa giác)
+  - `bean_rust` (Gỉ sắt): **42.0%** (Đốm nhỏ li ti, màu sắc tương đồng nền lá)
+- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS), đáp ứng hoàn hảo yêu cầu realtime trên thiết bị di động.
+
+---
+
 ## 🧪 Kiểm thử Đơn vị (Unit Testing)
 
 Dự án tích hợp bộ test tự động sử dụng **pytest** để kiểm tra tính toàn vẹn của dataset và các mô hình PyTorch (shape output, loss computation):
