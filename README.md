@@ -55,7 +55,8 @@ bean-leaf-disease/
 ├── data/                       # Thư mục dữ liệu (xem data/README.md)
 ├── docker/
 │   └── Dockerfile              # Dockerfile đóng gói Web App
-├── kaggle_job/                 # Job train trên GPU Kaggle Kernels (xem kaggle_job/README.md)
+├── kaggle_job/                  # Job train 4 model classification trên GPU Kaggle Kernels
+├── kaggle_job_yolo/             # Job train YOLOv8-seg trên GPU Kaggle Kernels (dataset Roboflow)
 ├── models/                     # Checkpoint đã train (xem models/README.md)
 ├── notebooks/
 │   └── 01_eda.ipynb            # Notebook khám phá và trực quan hóa dữ liệu (EDA)
@@ -149,8 +150,10 @@ python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50 --model_
 
 ### 3. Train trên GPU miễn phí của Kaggle (không cần máy có GPU)
 
-Đẩy toàn bộ job train (`scripts/train.py --model all`) lên chạy trên GPU Kaggle Kernels, điều khiển
-từ terminal local qua Kaggle CLI - xem [kaggle_job/README.md](kaggle_job/README.md).
+Đẩy job train lên chạy trên GPU Kaggle Kernels, điều khiển từ terminal local qua Kaggle CLI:
+- 4 model classification (`scripts/train.py --model all`) - xem [kaggle_job/README.md](kaggle_job/README.md).
+- YOLOv8-seg (`scripts/train_yolo.py`, dataset Roboflow, mặc định dùng model size `s` thay vì
+  `n` để mAP cao hơn) - xem [kaggle_job_yolo/README.md](kaggle_job_yolo/README.md).
 
 ---
 
@@ -192,12 +195,12 @@ Dưới đây là tổng hợp kết quả đánh giá thực nghiệm chi tiế
 
 #### Bảng so sánh tổng hợp các chỉ số hiệu năng trên tập Kiểm thử:
 
-| Mô hình (Model) | Accuracy | Precision | Recall | F1-Score | Số tham số | Đặc điểm chính |
-|---|:---:|:---:|:---:|:---:|:---:|---|
-| **DeiT-Small** (ViT) | **100.00%** | **100.00%** | **100.00%** | **100.00%** | ~21.8M | Đạt kết quả SOTA tuyệt đối nhờ cơ chế Self-Attention khai thác ngữ cảnh toàn cục. |
-| **BeanLeafVGG** (Custom CNN) | **99.25%** | **99.00%** | **99.00%** | **99.00%** | ~4.7M | CNN tự xây dựng từ scratch với kết quả xuất sắc dù không dùng weights pretrained. |
-| **EfficientNet-B3** | **99.25%** | **99.00%** | **99.00%** | **99.00%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng giữa độ chính xác và số lượng tham số. |
-| **MobileNetV3-Large** | **98.50%** | **98.00%** | **98.00%** | **98.00%** | ~3.2M | Mô hình siêu nhẹ, tối ưu cho ứng dụng thời gian thực và thiết bị di động / edge. |
+| Mô hình (Model) | Val Accuracy (Early-Stop) | Số tham số | Đặc điểm chính |
+|---|:---:|:---:|---|
+| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Đạt kết quả SOTA nhờ cơ chế Self-Attention khai thác ngữ cảnh toàn cục (đã fix EMA). |
+| **BeanLeafVGG** (Custom CNN) | **98.50%** | ~4.7M | CNN tự xây dựng từ scratch với kết quả xuất sắc dù không dùng weights pretrained. |
+| **EfficientNet-B3** | **96.24%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng giữa độ chính xác và số lượng tham số. |
+| **MobileNetV3-Large** | **94.74%** | ~3.2M | Mô hình siêu nhẹ, tối ưu cho ứng dụng thời gian thực và thiết bị di động / edge. |
 
 #### Độ ổn định qua 5-Fold Cross-Validation:
 
