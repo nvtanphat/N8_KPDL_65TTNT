@@ -14,8 +14,8 @@ env/
 
 # Jupyter
 .ipynb_checkpoints/
-notebooks/
-*.ipynb
+notebooks/*
+!notebooks/01_eda.ipynb
 
 # Model weights / large artifacts (use external storage, not git)
 models/*

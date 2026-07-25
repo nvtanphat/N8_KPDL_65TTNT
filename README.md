@@ -43,12 +43,7 @@ bean-leaf-disease/
 ├── data/                       # Dataset (không commit ảnh, xem data/README.md)
 ├── models/                     # Checkpoint đã train (không commit, xem models/README.md)
 ├── notebooks/                  # Jupyter Notebooks cho EDA và thử nghiệm model
-│   ├── 01_eda.ipynb
-│   ├── 02_mobilenet_v3.ipynb
-│   ├── 03_deit.ipynb
-│   ├── 04_cnn_from_scratch.ipynb
-│   ├── 05_efficientnet_b3.ipynb
-│   └── 06_yolo_segmentation.ipynb
+│   └── 01_eda.ipynb
 ├── src/bean_leaf/              # Package chính (cài qua `pip install -e .`)
 │   ├── data/
 │   │   ├── dataset.py          # create_df + DataLoader (PyTorch/torchvision)
