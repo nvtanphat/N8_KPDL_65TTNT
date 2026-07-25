@@ -44,3 +44,7 @@ Thumbs.db
 
 # Env files
 .env
+
+# Documents / PDFs
+*.pdf
+reports/*.pdf

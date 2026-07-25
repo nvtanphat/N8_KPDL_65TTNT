@@ -59,8 +59,6 @@ bean-leaf-disease/
 ├── models/                     # Checkpoint đã train (xem models/README.md)
 ├── notebooks/
 │   └── 01_eda.ipynb            # Notebook khám phá và trực quan hóa dữ liệu (EDA)
-├── reports/
-│   └── N8_report.pdf           # Báo cáo chi tiết đồ án
 ├── scripts/
 │   ├── train.py                # CLI entrypoint train 4 mô hình Classification
 │   └── train_yolo.py           # CLI entrypoint train YOLOv8 Segmentation
@@ -178,7 +176,7 @@ Sau đó truy cập ứng dụng tại: `http://localhost:8501`.
 
 ## 📈 Kết quả Thực nghiệm & Đánh giá (Experimental Results)
 
-Dưới đây là tổng hợp kết quả đánh giá thực nghiệm chi tiết trích xuất từ báo cáo ([`reports/N8_report.pdf`](reports/N8_report.pdf)) trên cùng tập dữ liệu kiểm thử:
+Dưới đây là tổng hợp kết quả đánh giá thực nghiệm chi tiết trích xuất từ báo cáo thử nghiệm trên cùng tập dữ liệu kiểm thử:
 
 ### 1. Phân loại bệnh (Classification Performance)
 
@@ -227,8 +225,7 @@ pytest -v
 
 ## 📝 Báo cáo Đồ án
 
-Báo cáo đầy đủ với phân tích định tính & định lượng, bảng so sánh metrics (Accuracy, Precision, Recall, F1-Score) và trực quan Grad-CAM nằm tại:
-- 📄 [reports/N8_report.pdf](reports/N8_report.pdf)
+Báo cáo đầy đủ với phân tích định tính & định lượng, bảng so sánh metrics (Accuracy, Precision, Recall, F1-Score) và trực quan Grad-CAM đã được tổng hợp chi tiết tại mục [Kết quả Thực nghiệm](#-kết-quả-thực-nghiệm--đánh-giá-experimental-results).
 
 ---
 
