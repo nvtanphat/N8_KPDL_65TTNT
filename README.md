@@ -55,6 +55,7 @@ bean-leaf-disease/
 ├── data/                       # Thư mục dữ liệu (xem data/README.md)
 ├── docker/
 │   └── Dockerfile              # Dockerfile đóng gói Web App
+├── kaggle_job/                 # Job train trên GPU Kaggle Kernels (xem kaggle_job/README.md)
 ├── models/                     # Checkpoint đã train (xem models/README.md)
 ├── notebooks/
 │   └── 01_eda.ipynb            # Notebook khám phá và trực quan hóa dữ liệu (EDA)
@@ -143,6 +144,13 @@ Sử dụng script [`scripts/train_yolo.py`](scripts/train_yolo.py) với datase
 ```bash
 python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50 --model_size n
 ```
+
+---
+
+### 3. Train trên GPU miễn phí của Kaggle (không cần máy có GPU)
+
+Đẩy toàn bộ job train (`scripts/train.py --model all`) lên chạy trên GPU Kaggle Kernels, điều khiển
+từ terminal local qua Kaggle CLI - xem [kaggle_job/README.md](kaggle_job/README.md).
 
 ---
 
