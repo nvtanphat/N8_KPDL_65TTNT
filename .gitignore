@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model weights / large artifacts (use external storage, not git)
+models/*
+!models/README.md
+*.pth
+*.pt
+*.keras
+*.h5
+*.onnx
+
+# Dataset
+data/*
+!data/README.md
+
+# Training outputs
+outputs/
+runs/
+logs/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Env files
+.env
