@@ -1,7 +1,6 @@
 # 🍃 Bean Leaf Lesions Classification & Segmentation
 
 > **Tác giả:** Nguyễn Văn Tấn Phát & Nguyễn Hoàng Lộc  
-> **Repository:** [nvtanphat/bean-leaf-disease](https://github.com/nvtanphat/bean-leaf-disease)  
 > *(Ghi chú: Dự án được khởi đầu và phát triển từ đồ án môn học Khai phá dữ liệu - Data Mining)*
 
 ---

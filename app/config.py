@@ -8,8 +8,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.join(BASE_DIR, 'models')
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
-# Tên các lớp phân loại
-CLASS_NAMES = ['healthy', 'angular_leaf_spot', 'bean_rust']
+# Tên các lớp phân loại - THỨ TỰ PHẢI khớp với torchvision.datasets.ImageFolder,
+# tức sắp xếp alphabet theo tên thư mục con (angular_leaf_spot < bean_rust < healthy).
+# 4 model classification (VGG/EfficientNet/MobileNetV3/DeiT) đều train bằng
+# ImageFolder nên output index 0/1/2 của model tương ứng đúng thứ tự này. Đổi thứ tự
+# ở đây mà không đổi cấu trúc thư mục data/train sẽ làm sai lệch toàn bộ nhãn hiển thị.
+CLASS_NAMES = ['angular_leaf_spot', 'bean_rust', 'healthy']
 CLASS_LABELS = {
     'healthy': 'Khỏe mạnh',
     'angular_leaf_spot': 'Đốm góc cạnh',
