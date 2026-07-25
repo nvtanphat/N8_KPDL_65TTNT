@@ -1,8 +1,8 @@
 # 🍃 Bean Leaf Lesions Classification & Segmentation
 
-> **Đồ án môn học: Khai phá dữ liệu (Data Mining)**  
 > **Tác giả:** Nguyễn Văn Tấn Phát & Nguyễn Hoàng Lộc  
-> **Repository:** [nvtanphat/bean-leaf-disease](https://github.com/nvtanphat/bean-leaf-disease)
+> **Repository:** [nvtanphat/bean-leaf-disease](https://github.com/nvtanphat/bean-leaf-disease)  
+> *(Ghi chú: Dự án được khởi đầu và phát triển từ đồ án môn học Khai phá dữ liệu - Data Mining)*
 
 ---
 
@@ -197,4 +197,4 @@ Báo cáo đầy đủ với phân tích định tính & định lượng, bản
 
 ## 📜 License & Lời cảm ơn
 
-Dự án được thực hiện phục vụ cho đồ án môn học Khai phá dữ liệu. Cảm ơn các cộng đồng mã nguồn mở **PyTorch**, **Timm**, **Ultralytics**, và **Streamlit** đã cung cấp các nền tảng tuyệt vời.
+Dự án ban đầu được khởi xướng từ đồ án môn học Khai phá dữ liệu (Data Mining) và tiếp tục được nâng cấp thành một hệ thống dự án độc lập. Cảm ơn các cộng đồng mã nguồn mở **PyTorch**, **Timm**, **Ultralytics**, và **Streamlit** đã cung cấp các nền tảng tuyệt vời.
