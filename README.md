@@ -11,7 +11,7 @@
 Dự án ứng dụng các mô hình **Deep Learning** tiên tiến (bao gồm Convolutional Neural Networks - CNNs, Vision Transformers - ViT, và Instance Segmentation) để tự động phát hiện, phân loại tổn thương và phân vùng vị trí bệnh hại trên lá đậu (Bean Leaves).
 
 ### ✨ Đặc điểm nổi bật
-- **100% PyTorch Native:** Chuyển đổi toàn bộ pipeline huấn luyện và suy luận sang PyTorch, không còn phụ thuộc TensorFlow/Keras.
+- **PyTorch Ecosystem:** Toàn bộ quy trình huấn luyện và suy luận được xây dựng đồng bộ trên nền tảng PyTorch và Torchvision.
 - **Kiến trúc Modular & Scalable:** Gói mã nguồn `src/bean_leaf/` được thiết kế dạng Python Package chuẩn (`pip install -e .`), giúp tái sử dụng linh hoạt giữa CLI, Notebooks, Web App và CI/CD.
 - **Hỗ trợ Đa mô hình (Multi-architecture):** Huấn luyện & đánh giá 5 kiến trúc từ baseline CNN tự dựng, MobileNetV3 (Lightweight), EfficientNet-B3, Vision Transformer (DeiT) tới YOLOv8-seg (Segmentation).
 - **Ứng dụng Web Tương tác (Streamlit & Docker):** Giao diện Streamlit hỗ trợ tải ảnh, dự đoán real-time, biểu đồ xác suất, gợi ý xử lý và chế độ so sánh song song (*Compare Mode*) giữa các mô hình.
