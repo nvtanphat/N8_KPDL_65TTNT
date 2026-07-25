@@ -113,20 +113,23 @@ python scripts/train.py --data_dir "./data" --model [tên_model] [options]
 ```
 
 **Các tham số chính:**
-- `--data_dir`: Đường dẫn thư mục chứa dataset (`train/`, `val/`, `test/`).
+- `--data_dir`: Đường dẫn thư mục chứa dataset (cấu trúc `train/`, `val/`).
+- `--download`: Tự tải dataset từ Kaggle vào `--data_dir` trước khi train qua Kaggle CLI (bỏ qua
+  nếu `<data_dir>/train` đã tồn tại) - cần cấu hình credential trước, xem [data/README.md](data/README.md).
 - `--model`: Chọn mô hình cần huấn luyện: `vgg`, `efficientnet`, `mobilenet`, `deit`, hoặc `all` (train lần lượt tất cả).
-- `--epochs`: Số lượng epochs (mặc định: `25`).
-- `--batch_size`: Batch size (mặc định: `32`).
-- `--output_dir`: Đường dẫn lưu checkpoints (mặc định: `./outputs`).
+- `--output_dir`: Đường dẫn lưu checkpoints (mặc định: `./outputs`, override bằng env `BEAN_LEAF_OUTPUT_DIR`).
 - `--eda`: (Option) Tự động chạy phân tích dữ liệu trước khi huấn luyện.
+
+Epoch/batch size/optimizer... là hyperparameter riêng của từng kiến trúc, nằm cố định trong
+`src/bean_leaf/models/<tên_model>.py` (không phải CLI flag) - sửa trực tiếp trong đó nếu cần tinh chỉnh.
 
 **Ví dụ:**
 ```bash
-# Train duy nhất mô hình EfficientNet-B3
-python scripts/train.py --data_dir "./data" --model efficientnet --epochs 30
+# Tải data từ Kaggle rồi train toàn bộ 4 model - chạy end-to-end 1 lệnh
+python scripts/train.py --data_dir "./data" --download --model all
 
-# Train toàn bộ 4 mô hình phân loại
-python scripts/train.py --data_dir "./data" --model all
+# Data đã có sẵn, chỉ train riêng EfficientNet-B3
+python scripts/train.py --data_dir "./data" --model efficientnet
 ```
 
 > 📌 Checkpoint mô hình xuất ra sẽ nằm tại `outputs/<model_name>/best_<model_name>_model.pth`. Sau khi train xong, copy checkpoint vào thư mục `models/` để Web App có thể đọc (xem chi tiết tại [models/README.md](models/README.md)).

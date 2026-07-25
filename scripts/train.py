@@ -15,6 +15,7 @@ from torchvision.transforms import InterpolationMode
 
 from bean_leaf.data.dataset import create_df, get_dataloaders
 from bean_leaf.data import eda
+from bean_leaf.data.kaggle_download import download_dataset
 from bean_leaf.data.transforms import build_train_transform, build_val_transform
 from bean_leaf.training.early_stopping import EarlyStopping
 from bean_leaf.utils.paths import get_default_output_dir
@@ -115,6 +116,9 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
 def main():
     parser = argparse.ArgumentParser(description='Bean Leaf Classification')
     parser.add_argument('--data_dir', type=str, required=True, help='Path to dataset')
+    parser.add_argument('--download', action='store_true',
+                        help='Tải dataset từ Kaggle vào --data_dir trước khi train '
+                             '(cần cấu hình Kaggle API credential trước, xem data/README.md)')
     parser.add_argument('--model', type=str, choices=ALL_MODELS + ['all'],
                         default='all', help='Model to train')
     parser.add_argument('--output_dir', type=str, default=None,
@@ -124,6 +128,9 @@ def main():
     args = parser.parse_args()
 
     output_dir = args.output_dir or get_default_output_dir()
+
+    if args.download:
+        download_dataset(args.data_dir)
 
     train_dir = os.path.join(args.data_dir, 'train')
     val_dir = os.path.join(args.data_dir, 'val')
