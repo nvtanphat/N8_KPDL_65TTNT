@@ -88,7 +88,15 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
 
         if model_name == 'deit':
             train_loss, train_acc = train_fn(model, model_ema, train_loader, criterion, optimizer, scheduler, device)
-            val_loss, val_acc, _, _ = val_fn(model_ema.module, val_loader, criterion, device)
+            # Với EMA_DECAY cao (0.9998) + ít epoch, EMA hội tụ chậm hơn hẳn model gốc
+            # (thực tế đo được: EMA kẹt ~35% trong khi model gốc đạt ~99% cùng lúc) - phải so
+            # sánh cả 2 và lấy bên thắng, không thể mặc định luôn dùng EMA để chấm điểm/lưu.
+            val_loss, val_acc, _, _ = val_fn(model, val_loader, criterion, device)
+            ema_val_loss, ema_val_acc, _, _ = val_fn(model_ema.module, val_loader, criterion, device)
+            if ema_val_acc >= val_acc:
+                best_of_epoch, val_loss, val_acc = model_ema.module, ema_val_loss, ema_val_acc
+            else:
+                best_of_epoch = model
         elif model_name == 'vgg':
             # OneCycleLR đã được step theo từng batch bên trong train_fn, không step lại ở đây
             train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, scheduler, device)
@@ -101,8 +109,8 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
         print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
         print(f"Val Loss:   {val_loss:.4f} | Val Acc:   {val_acc:.4f}")
 
-        # DeiT được đánh giá trên model_ema.module nên phải lưu đúng weight đã chấm điểm đó
-        early_stopping(val_loss, model_ema.module if model_name == 'deit' else model)
+        # DeiT: lưu đúng model (raw hoặc EMA) vừa thắng ở epoch này
+        early_stopping(val_loss, best_of_epoch if model_name == 'deit' else model)
         if early_stopping.early_stop:
             print("\nEarly stopping triggered!")
             break
