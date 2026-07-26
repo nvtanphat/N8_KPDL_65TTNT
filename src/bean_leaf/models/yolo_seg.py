@@ -73,11 +73,18 @@ def train_yolo_model(model, data_yaml_path, epochs=NUM_EPOCHS, batch_size=BATCH_
     )
 
 
-def evaluate_yolo_model(model, data_yaml_path, img_size=IMG_SIZE, batch_size=BATCH_SIZE, device=None):
-    """Đánh giá trên tập validation, trả về mAP (box + mask)."""
+def evaluate_yolo_model(model, data_yaml_path, img_size=IMG_SIZE, batch_size=BATCH_SIZE,
+                         device=None, split='test'):
+    """
+    Đánh giá mAP cuối cùng - mặc định split='test' (data.yaml của Roboflow có sẵn 3-way
+    split train/val/test). Ultralytics tự dùng 'val' nội bộ trong model.train() để chọn
+    best.pt/early-stopping (patience) - nếu evaluate_yolo_model cũng chấm trên 'val' thì
+    con số báo cáo sẽ thiên vị lạc quan (chấm đúng tập đã chọn best.pt theo nó). 'test'
+    chưa từng được nhìn thấy trong lúc train nên là con số đáng tin cậy để báo cáo.
+    """
     return model.val(
         data=data_yaml_path,
-        split='val',
+        split=split,
         imgsz=img_size,
         batch=batch_size,
         conf=0.25,

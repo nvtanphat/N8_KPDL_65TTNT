@@ -45,11 +45,15 @@ def main():
           "(xem models/README.md).")
 
     best_model = load_yolo_checkpoint(best_model_path)
-    val_results = evaluate_yolo_model(
+    # split='test' (mặc định) - KHÔNG phải 'val': best.pt đã được Ultralytics chọn dựa
+    # trên 'val' trong lúc train, nên chấm lại trên 'val' sẽ cho con số thiên vị lạc quan.
+    # 'test' là tập độc lập, chưa từng ảnh hưởng đến việc chọn checkpoint.
+    test_results = evaluate_yolo_model(
         best_model, args.data_yaml, args.img_size, args.batch_size, device,
     )
-    print(f"\nBox mAP@0.5: {val_results.box.map50:.4f}")
-    print(f"Mask mAP@0.5: {val_results.seg.map50:.4f}")
+    print("\n[TEST] Đánh giá trên tập test độc lập (không dùng để chọn checkpoint):")
+    print(f"Box mAP@0.5: {test_results.box.map50:.4f}")
+    print(f"Mask mAP@0.5: {test_results.seg.map50:.4f}")
 
 
 if __name__ == '__main__':

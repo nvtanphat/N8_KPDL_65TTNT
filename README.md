@@ -238,13 +238,17 @@ model dùng chung 1 resolution/hyperparameter để so sánh công bằng:
 
 ### 2. Hiệu năng Mô hình Phân vùng (YOLOv8 Instance Segmentation)
 
-- **Box mAP@0.5:** 68.0%
-- **Mask mAP@0.5:** 68.0% | **Mask mAP@0.5:0.95:** 48.4%
-- **Mask mAP@0.5 theo từng phân lớp:**
-  - `healthy`: **93.0%** (Ranh giới lá phân biệt rõ ràng)
-  - `angular_leaf_spot`: **65.0%** (Vùng bệnh đốm dạng góc đa giác)
-  - `bean_rust`: **42.0%** (Đốm nhỏ rải rác)
-- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS), phục vụ tốt cho phân tích thời gian thực.
+> ⚠️ Các số liệu trước đây (baseline notebook, model `n`: Box mAP50 73.0%, Mask mAP50 68.3%)
+> đo trên split **`val`** - cùng tập mà Ultralytics dùng để chọn `best.pt`/early-stopping
+> (`patience`) trong lúc train, nên bị thiên vị lạc quan (y hệt lỗi đã sửa ở mục
+> Classification). `data.yaml` (Roboflow) có sẵn split **`test`** độc lập, chưa từng dùng.
+> `scripts/train_yolo.py` đã sửa để `evaluate_yolo_model()` mặc định chấm trên `test` thay
+> vì `val` - cần train lại để có mAP đáng tin cậy, bảng dưới đây sẽ cập nhật sau khi chạy.
+
+- **Box mAP@0.5:** *chờ đo lại trên test set*
+- **Mask mAP@0.5 / mAP@0.5:0.95:** *chờ đo lại trên test set*
+- **Mask mAP@0.5 theo từng phân lớp:** *chờ đo lại trên test set*
+- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS) - không đổi (không phụ thuộc split đánh giá).
 
 ---
 
