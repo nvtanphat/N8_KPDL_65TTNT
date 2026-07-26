@@ -33,9 +33,9 @@ Hệ thống **Deep Learning** toàn diện cho việc chẩn đoán, phân lo�
 
 - **Hỗ trợ Đa kiến trúc (Multi-Architecture Ecosystem):**
   - **BeanLeafLite (Custom CNN):** 🛠️ Kiến trúc nhẹ tự thiết kế (~0.94M params, Acc **98.50%**).
-  - **MobileNetV3-Large:** ⚡ Tối ưu hóa suy luận thời gian thực cho thiết bị di động / Edge (Acc **99.25%**).
-  - **DeiT-Small (Vision Transformer):** 🥇 Khai thác cơ chế Self-Attention khai thác ngữ cảnh toàn cục (Acc **99.25%**).
-  - **EfficientNet-B3:** ⚖️ Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (Acc **97.74%**).
+  - **MobileNetV3-Large:** ⚡ Tối ưu hóa suy luận thời gian thực cho thiết bị di động / Edge (Acc **97.74%**).
+  - **DeiT-Small (Vision Transformer):** 🥇 Khai thác cơ chế Self-Attention khai thác ngữ cảnh toàn cục (Acc **100.00%**).
+  - **EfficientNet-B3:** ⚖️ Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (Acc **98.50%**).
   - **YOLOv8-seg (Instance Segmentation):** 🎯 Khoanh vùng và vẽ mặt nạ (polygon mask) tổn thương đốm lá realtime.
 
 - **Ứng dụng Web Tương tác (Streamlit Interactive App):**
@@ -176,13 +176,13 @@ Kết quả đo đạc độc lập trên tập test dưới **Controlled Benchm
 
 | Mô hình | Test Acc | Params | Phân nhóm Tối ưu & Ưu thế Kiến trúc |
 |---|:---:|:---:|---|
-| **MobileNetV3-Large** | **99.25%** | ~3.2M | ⚡ **[Edge / Mobile]** Phù hợp thiết bị di động, suy luận siêu nhanh |
-| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | 🥇 **[Cloud SOTA]** Self-Attention khai thác ngữ cảnh toàn cục |
+| **DeiT-Small** (ViT) | **100.00%** | ~21.8M | 🥇 **[Cloud SOTA]** Self-Attention khai thác ngữ cảnh toàn cục |
 | **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | 🛠️ **[Custom Innovation]** Depthwise + Residual + SE — siêu nhẹ |
-| **EfficientNet-B3** | **97.74%** | ~13.0M | ⚖️ **[Balanced Standard]** Cân bằng tham số và hiệu năng |
+| **EfficientNet-B3** | **98.50%** | ~13.0M | ⚖️ **[Balanced Standard]** Cân bằng tham số và hiệu năng |
+| **MobileNetV3-Large** | **97.74%** | ~3.2M | ⚡ **[Edge / Mobile]** Phù hợp thiết bị di động, suy luận siêu nhanh |
 
 > [!NOTE]
-> **Đánh giá Độc lập:** Kết quả được đo đúng 1 lần trên tập test độc lập (`val/` gốc), không dùng để chọn checkpoint, đảm bảo số liệu trung thực.
+> **Đánh giá Độc lập:** Kết quả được đo đúng 1 lần trên tập test độc lập (`val/` gốc), không dùng để chọn checkpoint, đảm bảo số liệu trung thực. Có thể tái tạo lại bất kỳ lúc nào bằng `python scripts/evaluate.py` (đọc thẳng checkpoint trong `models/`, không cần train lại) — kết quả (kèm precision/recall/F1 từng lớp, confusion matrix) được lưu ra `outputs/evaluation_metrics.json`.
 
 #### Đánh giá độ ổn định qua 5-Fold Cross-Validation:
 | Mô hình | Độ chính xác trung bình (5-Fold CV) |
