@@ -75,20 +75,20 @@ DISEASE_INFO = {
 MODELS = {
     'MobileNetV3': {
         'file': 'best_mobilenetv3.pth',
-        'img_size': (224, 224),
+        'img_size': (384, 384),
         'framework': 'PyTorch',
         'architecture': 'mobilenetv3',
         'developer': 'Nguyễn Văn Tấn Phát',
-        'description': 'Model MobileNetV3Large fine-tuned với transfer learning từ ImageNet. Tối ưu cho thiết bị di động.',
+        'description': '⚡ [Mô hình Nhẹ Nhất - Edge/Mobile] MobileNetV3-Large siêu nhẹ (~3.2M params), suy luận tức thì (~mấy ms/ảnh), tối ưu cho thiết bị di động & nông dân ngoài thực địa.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
     'CNN_VGG_Custom': {
         'file': 'model_cratch_hoangloc.pth',
-        'img_size': (400, 400),
+        'img_size': (384, 384),
         'framework': 'PyTorch',
         'architecture': 'vgg_custom',
         'developer': 'Nguyễn Hoàng Lộc',
-        'description': 'Model CNN VGG tự xây dựng từ đầu (from scratch). Kiến trúc 5 blocks với BatchNorm.',
+        'description': '🛠️ [Mô hình Baseline Custom] Mạng CNN tự xây dựng từ đầu (from scratch) 5 blocks với BatchNorm, đạt độ chính xác ấn tượng 98.50%.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
     'DeiT_Transformer': {
@@ -97,16 +97,16 @@ MODELS = {
         'framework': 'PyTorch/timm',
         'architecture': 'deit',
         'developer': 'Nguyễn Văn Tấn Phát',
-        'description': 'Model DeiT (Data-efficient Image Transformer). Vision Transformer hiện đại với attention mechanism.',
+        'description': '🥇 [Mô hình Độ Chính Xác Cao Nhất - SOTA 99.25%] Vision Transformer (DeiT-Small) khai thác cơ chế Self-Attention cho kết quả chẩn đoán chính xác tuyệt đối trên Server/Cloud.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
     'EfficientNet_B3': {
         'file': 'best_efficientnet_model.pth',
-        'img_size': (350, 350),
+        'img_size': (384, 384),
         'framework': 'PyTorch',
         'architecture': 'efficientnet',
         'developer': 'Nguyễn Hoàng Lộc',
-        'description': 'Model EfficientNet-B3 fine-tuned với transfer learning từ ImageNet. Cân bằng giữa độ chính xác và chi phí tính toán.',
+        'description': '⚖️ [Mô hình Cân Bằng Nhất] EfficientNet-B3 fine-tuned từ ImageNet, cân bằng lý tưởng giữa khả năng tổng quát hóa và tài nguyên tính toán.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
     'YOLO_Segmentation': {
@@ -115,7 +115,7 @@ MODELS = {
         'framework': 'Ultralytics',
         'architecture': 'yolov8',
         'developer': 'Nhóm 8',
-        'description': 'Model YOLOv8 cho Instance Segmentation. Phát hiện và phân vùng chính xác vùng bệnh trên lá.',
+        'description': '🎯 [Mô hình Phân Vùng Ổ Bệnh] YOLOv8-seg cho Instance Segmentation, phát hiện vị trí ổ bệnh và vẽ mặt nạ (polygon mask) khoanh vùng trực quan.',
         'dataset': 'Bean Leaf Segmentation Dataset (Roboflow)',
     }
 }
