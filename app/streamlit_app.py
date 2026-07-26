@@ -11,10 +11,10 @@ import numpy as np
 
 try:
     from app.config import CLASS_NAMES, CLASS_LABELS, MODELS, DISEASE_INFO
-    from app.utils import load_model, predict, read_image
+    from app.utils import load_model, predict, read_image, supports_gradcam, generate_gradcam
 except ImportError:
     from config import CLASS_NAMES, CLASS_LABELS, MODELS, DISEASE_INFO
-    from utils import load_model, predict, read_image
+    from utils import load_model, predict, read_image, supports_gradcam, generate_gradcam
 
 st.set_page_config(page_title="Phân Loại Bệnh Lá Đậu", layout="wide")
 
@@ -99,10 +99,21 @@ def single_view(model_type):
         if not uploaded:
             st.info("Upload ảnh để bắt đầu phân tích")
         else:
+            show_gradcam = False
+            if supports_gradcam(model_type):
+                show_gradcam = st.checkbox("Hiển thị Grad-CAM Heatmap", value=True)
+
             if st.button("Phân Tích", type="primary", use_container_width=True):
                 with st.spinner("Đang xử lý..."):
                     result = predict(model, image, model_type)
                     show_result(result)
+
+                if show_gradcam:
+                    with st.spinner("Đang tạo Grad-CAM..."):
+                        overlay = generate_gradcam(model, image, model_type)
+                    if overlay is not None:
+                        st.subheader("Grad-CAM Heatmap")
+                        st.image(overlay, caption="Vùng đỏ/vàng: Vùng AI tập trung nhận diện", use_column_width=True)
 
 
 def compare_view():
