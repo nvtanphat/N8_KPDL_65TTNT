@@ -206,22 +206,19 @@ model dùng chung 1 resolution/hyperparameter để so sánh công bằng:
 | Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Ưu thế |
 |---|:---:|:---:|---|
 | **MobileNetV3-Large** | **100%**¹ | ~3.2M | Đạt cao nhất ở resolution 384px, phù hợp thiết bị di động / Edge |
-| **EfficientNet-B3** | **98.50%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
-| **DeiT-Small** (ViT) | **96.24%** | ~21.8M | LR chung (3e-4) cao hơn LR gốc tối ưu cho ViT (1e-4) nên giảm nhẹ so với tune riêng |
-| **BeanLeafLite** (Custom CNN) | *chưa đo* | ~1M | Depthwise-Separable + Residual + SE Attention - nhẹ hơn MobileNetV3, chờ train lại |
+| **EfficientNet-B3** | **99.25%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
+| **DeiT-Small** (ViT) | **98.50%** | ~21.8M | Self-Attention khai thác ngữ cảnh toàn cục |
+| **BeanLeafLite** (Custom CNN) | **96.99%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention - **nhẹ hơn cả MobileNetV3**, giữ đúng phong độ của BeanLeafVGG cũ (~4.7M) chỉ với 1/5 tham số |
 
 > ¹ MobileNetV3 100% đo trên val set chỉ 133 ảnh - lệch 1 ảnh đã đổi ~0.75%, nên khoảng
 > cách giữa các model ở bảng trên nằm trong biên độ nhiễu thống kê, không nên coi là
 > kết luận chắc chắn "model X tốt hơn model Y".
 >
-> Trước khi áp dụng protocol thống nhất (mỗi model tự resolution/hyperparameter riêng khớp
-> notebook gốc), thứ tự khác: DeiT 99.25% > BeanLeafVGG (kiến trúc cũ) 98.50% > EfficientNet
-> 96.24% > MobileNetV3 94.74%. Protocol thống nhất ưu tiên so sánh công bằng hơn là điểm cao
-> nhất tuyệt đối cho từng model.
->
-> **BeanLeafLite** thay thế hoàn toàn **BeanLeafVGG** cũ (5 block conv3x3 thường, ~4.7M
-> tham số) bằng kiến trúc Depthwise-Separable + Residual + SE - checkpoint cũ (nếu có)
-> **không tương thích**, cần train lại (xem [models/README.md](models/README.md)).
+> Cả 4 model dùng đúng 1 recipe train công bằng (AdamW + CosineAnnealingLR/OneCycleLR,
+> full fine-tune từ epoch 1 - không có model nào được ưu ái cơ chế train riêng như
+> MobileNetV3 2-phase trước đây). Trước khi áp dụng protocol thống nhất (mỗi model tự
+> resolution/hyperparameter riêng khớp notebook gốc), thứ tự khác: DeiT 99.25% >
+> BeanLeafVGG (kiến trúc cũ) 98.50% > EfficientNet 96.24% > MobileNetV3 94.74%.
 
 #### Đánh giá độ ổn định qua 5-Fold Cross-Validation (kiến trúc BeanLeafVGG cũ):
 
