@@ -20,6 +20,17 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn th
 
 ---
 
+## 🛠️ Kiến trúc Tự Thiết Kế: BeanLeafLite (~0.94M Params)
+
+**BeanLeafLite** là mô hình mạng nơ-ron cuộn (CNN) được tự thiết kế nhằm tối ưu hóa sự cân bằng giữa độ chính xác và dung lượng tính toán trên các thiết bị di động hoặc môi trường nhúng:
+
+- **Depthwise-Separable Convolutions:** Tách biệt quá trình lọc không gian (spatial) và phối hợp kênh (channel), giúp giảm số lượng tham số xuống chỉ còn **~0.94M** (nhỏ hơn EfficientNet-B3 gấp 14 lần).
+- **Residual Skip Connections:** Kết nối tắt giữa các tầng block giúp dòng gradient truyền trực tiếp, tránh hiện tượng suy giảm gradient khi huấn luyện sâu.
+- **Squeeze-and-Excitation (SE) Attention:** Cơ chế chú ý kênh giúp tự động tái trọng số các đặc trưng quan trọng, tập trung vào các chi tiết tổn thương đốm lá nhỏ.
+- **Hiệu năng Thực nghiệm:** Đạt **98.50% Test Accuracy** trên tập kiểm thử độc lập, khẳng định hiệu quả vượt trội của mô hình tự thiết kế.
+
+---
+
 ## 📊 Tập dữ liệu (Dataset)
 
 - **Bài toán Phân loại (Classification):** [Bean Leaf Lesions Dataset](https://www.kaggle.com/datasets/marquis03/bean-leaf-lesions-classification)
