@@ -9,6 +9,7 @@ import torch.optim as optim
 from torchvision import models
 
 from bean_leaf.config import DEFAULT_CONFIG
+from bean_leaf.training.amp import autocast_context
 
 # ===================== CONFIGURATION =====================
 # Đọc từ config.py trung tâm (Single Source of Truth) - đổi DEFAULT_CONFIG áp dụng ngay ở đây.
@@ -26,31 +27,38 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 # ===================== TRAINING FUNCTIONS =====================
-def train_one_epoch(model, loader, criterion, optimizer, device):
-    """Train model for one epoch"""
+def train_one_epoch(model, loader, criterion, optimizer, device, scaler=None):
+    """Train model for one epoch (AMP nếu có scaler - xem bean_leaf.training.amp)"""
     model.train()
     running_loss = 0.0
     correct = 0
     total = 0
-    
+    autocast_ctx = autocast_context(device)
+
     for images, labels in loader:
         images, labels = images.to(device), labels.to(device)
-        
+
         optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        
-        loss.backward()
-        optimizer.step()
-        
+        with autocast_ctx:
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+
+        if scaler is not None:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
+
         running_loss += loss.item() * images.size(0)
         _, predicted = torch.max(outputs, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
-    
+
     epoch_loss = running_loss / total
     epoch_acc = correct / total
-    
+
     return epoch_loss, epoch_acc
 
 
@@ -61,13 +69,13 @@ def validate(model, loader, criterion, device):
     correct = 0
     total = 0
     
-    with torch.no_grad():
+    with torch.no_grad(), autocast_context(device):
         for images, labels in loader:
             images, labels = images.to(device), labels.to(device)
-            
+
             outputs = model(images)
             loss = criterion(outputs, labels)
-            
+
             running_loss += loss.item() * images.size(0)
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)

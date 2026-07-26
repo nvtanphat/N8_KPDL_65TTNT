@@ -10,6 +10,7 @@ from torch.optim.lr_scheduler import OneCycleLR
 from sklearn.metrics import accuracy_score
 
 from bean_leaf.config import DEFAULT_CONFIG
+from bean_leaf.training.amp import autocast_context, get_scaler
 
 # ===================== CONFIGURATION =====================
 # Đọc từ config.py trung tâm (Single Source of Truth) - đổi DEFAULT_CONFIG áp dụng ngay ở đây.
@@ -99,34 +100,41 @@ class BeanLeafVGG(nn.Module):
 
 
 # ===================== TRAINING FUNCTIONS =====================
-def train_one_epoch(model, loader, criterion, optimizer, scheduler, device):
-    """Train model for one epoch"""
+def train_one_epoch(model, loader, criterion, optimizer, scheduler, device, scaler=None):
+    """Train model for one epoch (AMP nếu có scaler - xem bean_leaf.training.amp)"""
     model.train()
     running_loss = 0.0
     correct = 0
     total = 0
-    
+    autocast_ctx = autocast_context(device)
+
     for inputs, labels in loader:
         inputs, labels = inputs.to(device), labels.to(device)
-        
+
         optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        
-        # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=GRAD_CLIP)
-        
-        optimizer.step()
-        
+        with autocast_ctx:
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+
+        if scaler is not None:
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)  # cần unscale trước khi clip theo norm thật
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=GRAD_CLIP)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=GRAD_CLIP)
+            optimizer.step()
+
         if scheduler is not None:
             scheduler.step()
-        
+
         running_loss += loss.item() * inputs.size(0)
         _, preds = torch.max(outputs, 1)
         correct += (preds == labels).sum().item()
         total += labels.size(0)
-    
+
     return running_loss / total, correct / total
 
 
@@ -136,16 +144,16 @@ def validate(model, loader, criterion, device):
     running_loss = 0.0
     all_preds = []
     all_labels = []
-    
-    with torch.no_grad():
+
+    with torch.no_grad(), autocast_context(device):
         for inputs, labels in loader:
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
             loss = criterion(outputs, labels)
-            
+
             running_loss += loss.item() * inputs.size(0)
             _, preds = torch.max(outputs, 1)
-            
+
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
     

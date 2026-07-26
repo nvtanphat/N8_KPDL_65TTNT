@@ -20,6 +20,7 @@ from bean_leaf.data.dataset import create_df, get_dataloaders
 from bean_leaf.data import eda
 from bean_leaf.data.kaggle_download import download_dataset
 from bean_leaf.data.transforms import build_train_transform, build_val_transform
+from bean_leaf.training.amp import get_scaler
 from bean_leaf.training.early_stopping import EarlyStopping
 from bean_leaf.utils.paths import get_default_output_dir
 
@@ -68,6 +69,9 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
         return model
 
     epochs = DEFAULT_CONFIG.num_epochs
+    # AMP dùng chung: cần thiết vì img_size=384 áp cho cả 4 model có thể vượt VRAM GPU
+    # (thực tế đã CUDA OOM với EfficientNet-B3 384px/batch32 khi train thuần fp32).
+    scaler = get_scaler(device)
 
     if model_name == 'deit':
         criterion, optimizer, scheduler, model_ema = deit.get_optimizer_scheduler(model, train_loader, epochs)
@@ -88,7 +92,7 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
         print("-" * 40)
 
         if model_name == 'deit':
-            train_loss, train_acc = train_fn(model, model_ema, train_loader, criterion, optimizer, scheduler, device)
+            train_loss, train_acc = train_fn(model, model_ema, train_loader, criterion, optimizer, scheduler, device, scaler)
             # Với EMA_DECAY cao (0.9998) + ít epoch, EMA hội tụ chậm hơn hẳn model gốc
             # (thực tế đo được: EMA kẹt ~35% trong khi model gốc đạt ~99% cùng lúc) - phải so
             # sánh cả 2 và lấy bên thắng, không thể mặc định luôn dùng EMA để chấm điểm/lưu.
@@ -100,10 +104,10 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
                 best_of_epoch = model
         elif model_name == 'vgg':
             # OneCycleLR đã được step theo từng batch bên trong train_fn, không step lại ở đây
-            train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, scheduler, device)
+            train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, scheduler, device, scaler)
             val_loss, val_acc, _, _ = val_fn(model, val_loader, criterion, device)
         else:  # efficientnet: CosineAnnealingLR, step 1 lần/epoch, không phụ thuộc val_loss
-            train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, device)
+            train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, device, scaler)
             val_loss, val_acc = val_fn(model, val_loader, criterion, device)
             scheduler.step()
 

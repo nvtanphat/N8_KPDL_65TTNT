@@ -11,6 +11,7 @@ import torch.optim as optim
 from torchvision import models
 
 from bean_leaf.config import DEFAULT_CONFIG
+from bean_leaf.training.amp import autocast_context, get_scaler
 from bean_leaf.training.early_stopping import EarlyStopping
 
 # ===================== CONFIGURATION =====================
@@ -89,23 +90,30 @@ def _freeze_bn_eval(model):
 
 
 # ===================== TRAINING FUNCTIONS =====================
-def train_one_epoch(model, loader, criterion, optimizer, device):
-    """Train model for one epoch"""
+def train_one_epoch(model, loader, criterion, optimizer, device, scaler=None):
+    """Train model for one epoch (AMP nếu có scaler - xem bean_leaf.training.amp)"""
     model.train()
     _freeze_bn_eval(model)
     running_loss = 0.0
     correct = 0
     total = 0
+    autocast_ctx = autocast_context(device)
 
     for images, labels in loader:
         images, labels = images.to(device), labels.to(device)
 
         optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+        with autocast_ctx:
+            outputs = model(images)
+            loss = criterion(outputs, labels)
 
-        loss.backward()
-        optimizer.step()
+        if scaler is not None:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
 
         running_loss += loss.item() * images.size(0)
         _, predicted = torch.max(outputs, 1)
@@ -122,7 +130,7 @@ def validate(model, loader, criterion, device):
     correct = 0
     total = 0
 
-    with torch.no_grad():
+    with torch.no_grad(), autocast_context(device):
         for images, labels in loader:
             images, labels = images.to(device), labels.to(device)
 
@@ -144,10 +152,11 @@ def _run_phase(model, train_loader, val_loader, device, epochs, lr, early_stoppi
         lr=lr, weight_decay=WEIGHT_DECAY,
     )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, min_lr=1e-7)
+    scaler = get_scaler(device)
 
     for epoch in range(epochs):
         print(f"\n[{phase_name}] Epoch {epoch + 1}/{epochs}")
-        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device, scaler)
         val_loss, val_acc = validate(model, val_loader, criterion, device)
         print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
         print(f"Val Loss:   {val_loss:.4f} | Val Acc:   {val_acc:.4f}")
