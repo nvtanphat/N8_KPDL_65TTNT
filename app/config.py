@@ -10,9 +10,6 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 # Tên các lớp phân loại - THỨ TỰ PHẢI khớp với torchvision.datasets.ImageFolder,
 # tức sắp xếp alphabet theo tên thư mục con (angular_leaf_spot < bean_rust < healthy).
-# 4 model classification (VGG/EfficientNet/MobileNetV3/DeiT) đều train bằng
-# ImageFolder nên output index 0/1/2 của model tương ứng đúng thứ tự này. Đổi thứ tự
-# ở đây mà không đổi cấu trúc thư mục data/train sẽ làm sai lệch toàn bộ nhãn hiển thị.
 CLASS_NAMES = ['angular_leaf_spot', 'bean_rust', 'healthy']
 CLASS_LABELS = {
     'healthy': 'Khỏe mạnh',
@@ -78,7 +75,6 @@ MODELS = {
         'img_size': (384, 384),
         'framework': 'PyTorch',
         'architecture': 'mobilenetv3',
-        'developer': 'Nguyễn Văn Tấn Phát',
         'description': '⚡ [Mô hình Nhẹ Nhất - Edge/Mobile] MobileNetV3-Large siêu nhẹ (~3.2M params), suy luận tức thì (~mấy ms/ảnh), tối ưu cho thiết bị di động & nông dân ngoài thực địa.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
@@ -87,7 +83,6 @@ MODELS = {
         'img_size': (384, 384),
         'framework': 'PyTorch',
         'architecture': 'bean_leaf_lite',
-        'developer': 'Nguyễn Hoàng Lộc',
         'description': '🛠️ [Mô hình Custom Đổi Mới] BeanLeafLite: CNN tự thiết kế từ đầu (from scratch) với Depthwise-Separable + Residual + SE Attention, ~1M tham số.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
@@ -96,7 +91,6 @@ MODELS = {
         'img_size': (384, 384),
         'framework': 'PyTorch/timm',
         'architecture': 'deit',
-        'developer': 'Nguyễn Văn Tấn Phát',
         'description': '🥇 [Mô hình Độ Chính Xác Cao Nhất - SOTA 99.25%] Vision Transformer (DeiT-Small) khai thác cơ chế Self-Attention cho kết quả chẩn đoán chính xác tuyệt đối trên Server/Cloud.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
@@ -105,7 +99,6 @@ MODELS = {
         'img_size': (384, 384),
         'framework': 'PyTorch',
         'architecture': 'efficientnet',
-        'developer': 'Nguyễn Hoàng Lộc',
         'description': '⚖️ [Mô hình Cân Bằng Nhất] EfficientNet-B3 fine-tuned từ ImageNet, cân bằng lý tưởng giữa khả năng tổng quát hóa và tài nguyên tính toán.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
@@ -114,7 +107,6 @@ MODELS = {
         'img_size': (640, 640),
         'framework': 'Ultralytics',
         'architecture': 'yolov8',
-        'developer': 'Nhóm 8',
         'description': '🎯 [Mô hình Phân Vùng Ổ Bệnh] YOLOv8-seg cho Instance Segmentation, phát hiện vị trí ổ bệnh và vẽ mặt nạ (polygon mask) khoanh vùng trực quan.',
         'dataset': 'Bean Leaf Segmentation Dataset (Roboflow)',
     }

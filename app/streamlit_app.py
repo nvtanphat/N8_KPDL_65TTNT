@@ -53,7 +53,6 @@ def single_view(model_type):
         # Model info - ben duoi uploader
         st.subheader(f"Mo hinh: {model_type}")
         st.write(f"**Kich thuoc:** {cfg['img_size'][0]}x{cfg['img_size'][1]}")
-        st.write(f"**Nha phat trien:** {cfg.get('developer', 'N/A')}")
         
         with st.expander("Mo hinh Mo ta"):
             st.write(cfg.get('description', 'Khong co mo ta'))
