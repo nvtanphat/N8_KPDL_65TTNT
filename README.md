@@ -55,9 +55,18 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn th
 | **EfficientNet-B3** | **98.50%** | ~13.0M | Kiến trúc Compound Scaling cân bằng hiệu năng |
 | **MobileNetV3-Large** | **97.74%** | ~3.2M | Kiến trúc tối ưu hóa cho thiết bị di động & Edge Computing |
 
-### Hiệu năng Mô hình Phân vùng (YOLOv8 Instance Segmentation)
-- **Kiến trúc:** YOLOv8-seg (Instance Segmentation)
-- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS trên GPU)
+### Hiệu năng Mô hình Phân vùng (YOLOv8-seg Instance Segmentation)
+Đo trên tập **test** độc lập (128 ảnh, chưa từng dùng để chọn checkpoint/early-stopping):
+
+| Metric | Giá trị |
+|---|:---:|
+| Box mAP@0.5 | **62.43%** |
+| Mask mAP@0.5 | **59.52%** |
+
+> [!NOTE]
+> Nếu chấm trên tập `val` (tập Ultralytics dùng để chọn `best.pt` lúc train) thay vì `test`,
+> mAP cao hơn hẳn (~72% box, ~69% mask) — chênh lệch này là ví dụ cụ thể cho lý do phải tách
+> `test` độc lập khỏi `val`, tương tự vấn đề đã sửa ở benchmark classification.
 
 ---
 
