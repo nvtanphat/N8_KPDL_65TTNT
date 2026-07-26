@@ -34,15 +34,15 @@ from bean_leaf.training.amp import get_scaler
 from bean_leaf.training.early_stopping import EarlyStopping
 from bean_leaf.utils.paths import get_default_output_dir
 
-from bean_leaf.models import vgg_custom, efficientnet, mobilenetv3, deit
+from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, deit
 
 NUM_CLASSES = DEFAULT_CONFIG.num_classes
 ALL_MODELS = ['vgg', 'efficientnet', 'mobilenet', 'deit']
-device = vgg_custom.device
+device = bean_leaf_lite.device
 
 # Mỗi model: module chứa config + factory, và interpolation phù hợp với kiến trúc
 MODEL_REGISTRY = {
-    'vgg': {'module': vgg_custom, 'create': vgg_custom.create_lite_model, 'interpolation': InterpolationMode.BILINEAR},
+    'vgg': {'module': bean_leaf_lite, 'create': bean_leaf_lite.create_lite_model, 'interpolation': InterpolationMode.BILINEAR},
     'efficientnet': {'module': efficientnet, 'create': efficientnet.create_efficientnet_model, 'interpolation': InterpolationMode.BILINEAR},
     'mobilenet': {'module': mobilenetv3, 'create': mobilenetv3.create_mobilenetv3_model, 'interpolation': InterpolationMode.BILINEAR},
     'deit': {'module': deit, 'create': deit.create_deit_model, 'interpolation': InterpolationMode.BICUBIC},
@@ -92,8 +92,8 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
         criterion, optimizer, scheduler, model_ema = deit.get_optimizer_scheduler(model, train_loader, epochs)
         train_fn, val_fn = deit.train_one_epoch, deit.validate
     elif model_name == 'vgg':
-        criterion, optimizer, scheduler = vgg_custom.get_optimizer_scheduler(model, train_loader, epochs)
-        train_fn, val_fn = vgg_custom.train_one_epoch, vgg_custom.validate
+        criterion, optimizer, scheduler = bean_leaf_lite.get_optimizer_scheduler(model, train_loader, epochs)
+        train_fn, val_fn = bean_leaf_lite.train_one_epoch, bean_leaf_lite.validate
         model_ema = None
     else:  # efficientnet & mobilenet: cùng 1 recipe (AdamW + CosineAnnealingLR, full fine-tune)
         module = MODEL_REGISTRY[model_name]['module']

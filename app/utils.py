@@ -40,7 +40,7 @@ def _get_ultralytics():
 # thay vì khai báo lại ở đây - tránh lệch kiến trúc giữa train và inference.
 
 def _create_vgg_model(num_classes=3):
-    from bean_leaf.models.vgg_custom import create_lite_model
+    from bean_leaf.models.bean_leaf_lite import create_lite_model
     return create_lite_model(num_classes=num_classes)
 
 
@@ -86,7 +86,7 @@ def load_model(model_type):
 
     try:
         if 'pytorch' in framework or 'timm' in framework:
-            architecture = config.get('architecture', 'vgg_custom')
+            architecture = config.get('architecture', 'bean_leaf_lite')
             return _load_pytorch_model(model_path, architecture)
         elif 'ultralytics' in framework or 'yolo' in framework:
             return _load_yolo_model(model_path)
@@ -103,7 +103,7 @@ def _load_pytorch_model(model_path, architecture):
     torch = _get_torch()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    if architecture == 'vgg_custom':
+    if architecture == 'bean_leaf_lite':
         model = _create_vgg_model(num_classes=3)
     elif architecture == 'deit':
         model = _create_deit_model(num_classes=3)

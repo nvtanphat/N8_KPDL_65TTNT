@@ -86,7 +86,7 @@ MODELS = {
         'file': 'model_cratch_hoangloc.pth',
         'img_size': (384, 384),
         'framework': 'PyTorch',
-        'architecture': 'vgg_custom',
+        'architecture': 'bean_leaf_lite',
         'developer': 'Nguyễn Hoàng Lộc',
         'description': 'BeanLeafLite: CNN tự thiết kế từ đầu (from scratch) với Depthwise-Separable + Residual + SE Attention, ~1M tham số.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',

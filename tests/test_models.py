@@ -1,7 +1,7 @@
 """Smoke tests: mỗi kiến trúc phải khởi tạo được và forward pass đúng shape output."""
 import torch
 
-from bean_leaf.models import vgg_custom, efficientnet, mobilenetv3, deit
+from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, deit
 
 NUM_CLASSES = 3
 
@@ -14,9 +14,9 @@ def _assert_forward_shape(model, img_size):
     assert out.shape == (2, NUM_CLASSES)
 
 
-def test_vgg_custom_forward():
-    model = vgg_custom.create_lite_model(NUM_CLASSES)
-    _assert_forward_shape(model, img_size=vgg_custom.IMG_SIZE)
+def test_bean_leaf_lite_forward():
+    model = bean_leaf_lite.create_lite_model(NUM_CLASSES)
+    _assert_forward_shape(model, img_size=bean_leaf_lite.IMG_SIZE)
 
 
 def test_efficientnet_forward():
