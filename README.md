@@ -214,18 +214,24 @@ model dùng chung 1 resolution/hyperparameter để so sánh công bằng:
 | **MobileNetV3-Large** | **99.25%** | ~3.2M | Phù hợp thiết bị di động / Edge |
 | **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Self-Attention khai thác ngữ cảnh toàn cục |
 | **EfficientNet-B3** | **97.74%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
-| **BeanLeafLite** (Custom CNN) | **93.98%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention - nhẹ hơn cả MobileNetV3 |
+| **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention - nhẹ hơn cả MobileNetV3 |
 
 > Đo đúng 1 lần trên tập test độc lập (`val/` gốc), **không** dùng để chọn checkpoint hay
 > quyết định early-stopping trong lúc train (xem mục Training: Train / Internal-Val /
 > Test) - số liệu đáng tin cậy hơn "Val Accuracy" thiên vị đo trước đây
 > (100%/99.25%/98.50%/96.99%, dùng `val/` vừa để chọn checkpoint vừa để báo cáo).
-> BeanLeafLite giảm nhiều nhất so với Val Accuracy cũ (97%→94%) - hợp lý vì là model nhỏ
-> nhất, ít "dư" capacity để bù phần dữ liệu train bị bớt đi cho internal-val.
 >
 > Cả 4 model dùng đúng 1 recipe train công bằng (AdamW + CosineAnnealingLR/OneCycleLR,
 > full fine-tune từ epoch 1 - không có model nào được ưu ái cơ chế train riêng như
 > MobileNetV3 2-phase trước đây).
+>
+> BeanLeafLite ban đầu đo được 93.98% - thấp bất thường so với 3 model còn lại. Nguyên
+> nhân: OneCycleLR được cấu hình lịch anneal LR cho 100 epoch, nhưng EarlyStopping
+> (patience=7) luôn dừng sớm hơn nhiều (~epoch 40-45 thực tế) - lịch LR bị cắt ngang giữa
+> chừng, LR chưa kịp giảm về thấp lúc chọn checkpoint. Sau khi hiệu chỉnh lại mốc epoch
+> mà OneCycleLR nhắm tới cho sát với thời điểm early-stop thực tế (không đổi img_size/
+> batch_size/epoch ceiling/patience/label_smoothing hay bất kỳ tham số benchmark chung
+> nào khác), kết quả tăng lên 98.50% - ngang EfficientNet-B3 trong khi nhẹ hơn ~14 lần.
 
 #### Đánh giá độ ổn định qua 5-Fold Cross-Validation (kiến trúc BeanLeafVGG cũ):
 
