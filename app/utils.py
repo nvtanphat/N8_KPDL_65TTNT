@@ -3,6 +3,12 @@ Utility functions cho ứng dụng Web phân loại bệnh lá đậu
 Hỗ trợ load 5 loại model, tất cả đều chạy trên PyTorch:
 MobileNetV3, CNN VGG (custom), EfficientNet-B3, DeiT (timm), YOLO (Ultralytics, PyTorch backend)
 """
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
 import os
 import numpy as np
 from PIL import Image
@@ -94,7 +100,8 @@ def load_model(model_type):
             print(f"Framework '{framework}' không được hỗ trợ")
             return None
     except Exception as e:
-        print(f"Lỗi khi load model {model_type}: {e}")
+        err_msg = str(e).encode('ascii', errors='backslashreplace').decode('ascii')
+        print(f"Loi khi load model {model_type}: {err_msg}")
         return None
 
 
@@ -116,8 +123,14 @@ def _load_pytorch_model(model_path, architecture):
         return None
     
     # Load state dict
-    state_dict = torch.load(model_path, map_location=device, weights_only=False)
-    model.load_state_dict(state_dict)
+    try:
+        state_dict = torch.load(model_path, map_location=device, weights_only=False)
+        model.load_state_dict(state_dict)
+    except Exception as err:
+        err_str = str(err).encode('ascii', errors='backslashreplace').decode('ascii')
+        print(f"[WARNING] State dict mismatch or load error for {architecture} at {model_path}: {err_str}")
+        return None
+
     model.to(device)
     model.eval()
     

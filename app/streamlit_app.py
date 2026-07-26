@@ -1,6 +1,9 @@
-"""
-Ung dung Web phan loai benh la dau - Streamlit
-"""
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
 import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
