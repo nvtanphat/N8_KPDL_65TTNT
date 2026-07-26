@@ -209,12 +209,12 @@ python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50 --model_
 Đo dưới **Controlled Benchmark Protocol** thống nhất (384px, xem mục Training) - tất cả 4
 model dùng chung 1 resolution/hyperparameter để so sánh công bằng:
 
-| Mô hình | Test Accuracy | Số tham số | Đặc điểm & Ưu thế |
+| Mô hình | Test Acc | Params | Đặc điểm & Ưu thế |
 |---|:---:|:---:|---|
-| **MobileNetV3-Large** | **99.25%** | ~3.2M | Phù hợp thiết bị di động / Edge |
+| **MobileNetV3-Large** | **99.25%** | ~3.2M | Phù hợp thiết bị di động / Edge, suy luận siêu nhanh |
 | **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Self-Attention khai thác ngữ cảnh toàn cục |
+| **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention - siêu nhẹ, hiệu năng ấn tượng |
 | **EfficientNet-B3** | **97.74%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
-| **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention - nhẹ hơn cả MobileNetV3 |
 
 > Đo đúng 1 lần trên tập test độc lập (`val/` gốc), **không** dùng để chọn checkpoint hay
 > quyết định early-stopping trong lúc train (xem mục Training: Train / Internal-Val /
