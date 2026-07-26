@@ -11,10 +11,10 @@ import numpy as np
 
 try:
     from app.config import CLASS_NAMES, CLASS_LABELS, MODELS, DISEASE_INFO
-    from app.utils import load_model, predict, read_image
+    from app.utils import load_model, predict, read_image, supports_gradcam, generate_gradcam
 except ImportError:
     from config import CLASS_NAMES, CLASS_LABELS, MODELS, DISEASE_INFO
-    from utils import load_model, predict, read_image
+    from utils import load_model, predict, read_image, supports_gradcam, generate_gradcam
 
 st.set_page_config(page_title="Phan Loai Benh La Dau", layout="wide")
 
@@ -87,10 +87,26 @@ def single_view(model_type):
         if not uploaded:
             st.info("Upload anh de bat dau phan tich")
         else:
+            show_gradcam = False
+            if supports_gradcam(model_type):
+                show_gradcam = st.checkbox("Hien thi Grad-CAM (vung anh huong quyet dinh)", value=True)
+            else:
+                st.caption("Grad-CAM khong ho tro kien truc Vision Transformer (DeiT).")
+
             if st.button("Phan Tich", type="primary", use_container_width=True):
                 with st.spinner("Dang xu ly..."):
                     result = predict(model, image, model_type)
                     show_result(result)
+
+                if show_gradcam:
+                    with st.spinner("Dang tinh Grad-CAM..."):
+                        overlay = generate_gradcam(model, image, model_type)
+                    if overlay is not None:
+                        st.subheader("Grad-CAM: Vung anh huong den quyet dinh")
+                        st.image(overlay, caption="Vung do/vang = anh huong manh den du doan cua model",
+                                 use_column_width=True)
+                    else:
+                        st.warning("Khong the tinh Grad-CAM cho model nay.")
 
 
 def compare_view():

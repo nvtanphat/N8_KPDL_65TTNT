@@ -149,6 +149,91 @@ def _load_yolo_model(model_path):
     return model
 
 
+# ===================== GRAD-CAM =====================
+# Chỉ CNN có Conv2d cuối cùng dạng feature-map lưới mới áp dụng được Grad-CAM kiểu
+# này. DeiT là Vision Transformer (patch embedding + self-attention, không có feature
+# map dạng lưới ý nghĩa ở layer cuối) nên bỏ qua; YOLO đã có mask segmentation riêng.
+GRADCAM_ARCHITECTURES = {'bean_leaf_lite', 'mobilenetv3', 'efficientnet'}
+
+
+def supports_gradcam(model_type):
+    """Kiến trúc của model_type có hỗ trợ Grad-CAM hay không (xem GRADCAM_ARCHITECTURES)."""
+    architecture = MODELS.get(model_type, {}).get('architecture')
+    return architecture in GRADCAM_ARCHITECTURES
+
+
+def generate_gradcam(model, image, model_type, alpha=0.45):
+    """
+    Grad-CAM cho model CNN: forward + backward hook trên Conv2d cuối cùng, lấy
+    activation và gradient theo lớp được dự đoán, weighted-sum theo gradient trung
+    bình từng kênh (global average pooling) rồi ReLU + normalize -> heatmap. Resize
+    heatmap về kích thước ảnh gốc, tô màu jet, chồng lên ảnh gốc (alpha-blend).
+
+    Trả về PIL Image (overlay) hoặc None nếu model không có Conv2d nào (kiến trúc
+    không hỗ trợ, vd DeiT).
+    """
+    torch = _get_torch()
+
+    img_tensor = preprocess_image(image, model_type)
+    img_tensor.requires_grad_(True)
+
+    target_layer = None
+    for module in model.modules():
+        if isinstance(module, torch.nn.Conv2d):
+            target_layer = module
+    if target_layer is None:
+        return None
+
+    activations = {}
+    gradients = {}
+
+    def forward_hook(module, inp, out):
+        activations['value'] = out
+
+    def backward_hook(module, grad_in, grad_out):
+        gradients['value'] = grad_out[0]
+
+    handle_f = target_layer.register_forward_hook(forward_hook)
+    handle_b = target_layer.register_full_backward_hook(backward_hook)
+
+    try:
+        model.zero_grad()
+        outputs = model(img_tensor)
+        pred_idx = outputs.argmax(dim=1)
+        outputs[0, pred_idx].backward()
+
+        acts = activations['value'][0].detach()
+        grads = gradients['value'][0].detach()
+        weights = grads.mean(dim=(1, 2))
+
+        heatmap = torch.zeros(acts.shape[1:], device=acts.device)
+        for i, w in enumerate(weights):
+            heatmap += w * acts[i]
+
+        heatmap = torch.relu(heatmap)
+        heatmap = heatmap / (heatmap.max() + 1e-8)
+        heatmap = heatmap.cpu().numpy()
+    finally:
+        handle_f.remove()
+        handle_b.remove()
+
+    return _overlay_heatmap(image, heatmap, alpha=alpha)
+
+
+def _overlay_heatmap(image, heatmap, alpha=0.45):
+    """Resize heatmap [0,1] (H_feat, W_feat) về kích thước ảnh gốc, tô màu jet, chồng
+    lên ảnh gốc bằng alpha-blend. Trả về PIL Image RGB cùng kích thước ảnh gốc."""
+    import matplotlib.cm as cm
+
+    heatmap_img = Image.fromarray(np.uint8(heatmap * 255)).resize(image.size, Image.BILINEAR)
+    heatmap_resized = np.array(heatmap_img) / 255.0
+
+    colored = np.uint8(cm.jet(heatmap_resized)[:, :, :3] * 255)
+    colored_img = Image.fromarray(colored).convert('RGB')
+
+    return Image.blend(image.convert('RGB'), colored_img, alpha)
+
+
 # ===================== IMAGE PROCESSING =====================
 
 def read_image(image_bytes):
