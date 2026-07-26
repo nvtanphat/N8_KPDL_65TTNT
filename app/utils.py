@@ -14,10 +14,7 @@ import numpy as np
 from PIL import Image
 import io
 
-try:
-    from app.config import MODELS, MODEL_DIR, CLASS_NAMES
-except ImportError:
-    from config import MODELS, MODEL_DIR, CLASS_NAMES
+from config import MODELS, MODEL_DIR, CLASS_NAMES
 
 # ===================== LAZY IMPORTS =====================
 # Import các thư viện khi cần để giảm thời gian load ban đầu
