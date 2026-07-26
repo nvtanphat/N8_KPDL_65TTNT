@@ -1,6 +1,6 @@
 # 🍃 Bean Leaf Lesions Classification & Instance Segmentation
 
-Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn thương và phân vùng vị trí bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp các kiến trúc tiên tiến gồm CNN, Vision Transformer (DeiT), Instance Segmentation (YOLOv8-seg) và kiến trúc tự thiết kế **BeanLeafLite** (~0.94M params), đi kèm ứng dụng Web Streamlit và Docker container hỗ trợ triển khai thực tế.
+Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn thương và phân vùng vị trí bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp các kiến trúc tiên tiến gồm CNN, Vision Transformer (DeiT), Instance Segmentation (YOLOv8-seg) và kiến trúc tự thiết kế **BeanLeafLite** (~0.94M params), đi kèm ứng dụng Web Streamlit.
 
 ---
 
@@ -59,7 +59,6 @@ bean-leaf-disease/
 │   ├── streamlit_app.py        # Ứng dụng chính Streamlit
 │   └── utils.py                # Pipeline nạp mô hình, suy luận & Grad-CAM
 ├── data/                       # Quản lý tập dữ liệu train/val
-├── docker/                     # Cấu hình Docker build container
 ├── docs/                       # Tài liệu dự án & hình ảnh minh họa
 ├── models/                     # Thư mục chứa weights (.pth, .pt)
 ├── outputs/                    # Báo cáo đánh giá định lượng (JSON)
@@ -82,7 +81,6 @@ bean-leaf-disease/
 
 ![Giao diện Web App Streamlit Chẩn đoán & Grad-CAM](docs/assets/web_demo.png)
 
-### 1. Chạy Trực tiếp với Streamlit
 ```bash
 # Cài đặt thư viện & package local
 pip install -r requirements.txt
@@ -90,12 +88,6 @@ pip install -e .
 
 # Chạy ứng dụng web
 streamlit run app/streamlit_app.py
-```
-
-### 2. Triển khai với Docker
-```bash
-docker build -t bean-leaf-app -f docker/Dockerfile .
-docker run -p 8501:8501 -v $(pwd)/models:/app/models bean-leaf-app
 ```
 
 ---
@@ -111,13 +103,22 @@ docker run -p 8501:8501 -v $(pwd)/models:/app/models bean-leaf-app
 ### Lệnh Thực thi
 
 ```bash
-# 1. Huấn luyện toàn bộ các mô hình phân loại
+# 1. Huấn luyện toàn bộ các mô hình phân loại (data/train, data/val)
 python scripts/train.py --data_dir "./data" --model all
 
-# 2. Huấn luyện mô hình phân vùng YOLOv8
-python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50
+# 2. Huấn luyện mô hình phân vùng YOLOv8 - dataset segmentation (data.yaml) không nằm
+#    trong data/ (đó là dataset classification), phải tải riêng từ Roboflow trước:
+pip install roboflow
+python -c "
+from roboflow import Roboflow
+rf = Roboflow(api_key='YOUR_ROBOFLOW_API_KEY')
+project = rf.workspace('alebachew-m').project('final_instance_segmentation')
+dataset = project.version(1).download('yolov8')
+print(dataset.location)
+"
+python scripts/train_yolo.py --data_yaml "<dataset.location>/data.yaml" --epochs 50
 
-# 3. Đánh giá offline và lưu metric ra JSON
+# 3. Đánh giá offline 4 model classification và lưu metric ra JSON
 python scripts/evaluate.py
 
 # 4. Chạy Unit Tests
