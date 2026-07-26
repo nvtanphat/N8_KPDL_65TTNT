@@ -21,15 +21,27 @@ st.set_page_config(page_title="Phan Loai Benh La Dau", layout="wide")
 # CSS fix gọn giao diện trong 1 khung hình web
 st.markdown("""
 <style>
+    header[data-testid="stHeader"] {
+        height: 2.5rem !important;
+    }
     .block-container {
-        padding-top: 3.8rem !important;
-        padding-bottom: 1rem !important;
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
+        padding-top: 2.8rem !important;
+        padding-bottom: 0.5rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+    div[data-testid="stVerticalBlock"] {
+        gap: 0.4rem !important;
     }
     img {
-        max-height: 300px !important;
-        object-fit: contain;
+        max-height: 210px !important;
+        object-fit: contain !important;
+    }
+    .stButton button {
+        padding: 0.3rem 0.6rem !important;
+    }
+    .streamlit-expanderHeader {
+        font-size: 0.85rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -146,7 +158,7 @@ def compare_view():
 
 
 def plot_compare(results):
-    fig, ax = plt.subplots(figsize=(10, 4))
+    fig, ax = plt.subplots(figsize=(7, 2.5))
     x = np.arange(len(CLASS_NAMES))
     w = 0.8 / len(results)
     colors = ['#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f39c12']
@@ -157,8 +169,9 @@ def plot_compare(results):
     
     ax.set_xticks(x)
     ax.set_xticklabels([CLASS_LABELS.get(c, c) for c in CLASS_NAMES])
-    ax.legend()
+    ax.legend(fontsize='small')
     ax.set_ylabel('Confidence (%)')
+    plt.tight_layout()
     st.pyplot(fig)
     plt.close()
 
@@ -178,7 +191,7 @@ def show_result(result):
         'Confidence': f"{result['confidence']:.1f}%"
     }]), hide_index=True)
     
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = plt.subplots(figsize=(5, 2.0))
     probs = list(result['probabilities'].values())
     labels = [CLASS_LABELS.get(c, c) for c in result['probabilities'].keys()]
     colors = ['#e74c3c' if p == max(probs) else '#3498db' for p in probs]
