@@ -10,20 +10,23 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import models
 
+from bean_leaf.config import DEFAULT_CONFIG
 from bean_leaf.training.early_stopping import EarlyStopping
 
 # ===================== CONFIGURATION =====================
-NUM_CLASSES = 3
-IMG_SIZE = 224
-BATCH_SIZE = 32
-NUM_EPOCHS = 30
-PHASE1_EPOCHS = 10
-PHASE2_EPOCHS = 20
+# Đọc từ config.py trung tâm (Single Source of Truth) - đổi DEFAULT_CONFIG áp dụng ngay ở đây.
+NUM_CLASSES = DEFAULT_CONFIG.num_classes
+IMG_SIZE = DEFAULT_CONFIG.img_size
+BATCH_SIZE = DEFAULT_CONFIG.batch_size
+# 2 phase transfer learning: tổng epoch = DEFAULT_CONFIG.num_epochs, chia 1/3 - 2/3
+PHASE1_EPOCHS = DEFAULT_CONFIG.num_epochs // 3
+PHASE2_EPOCHS = DEFAULT_CONFIG.num_epochs - PHASE1_EPOCHS
+# Riêng của cơ chế 2-phase (không có tương đương "1 learning_rate" trong config chung)
 PHASE1_LR = 5e-4
 PHASE2_LR = 1e-5
-WEIGHT_DECAY = 1e-2
-LABEL_SMOOTHING = 0.0
-PATIENCE = 7
+WEIGHT_DECAY = DEFAULT_CONFIG.weight_decay
+LABEL_SMOOTHING = DEFAULT_CONFIG.label_smoothing
+PATIENCE = DEFAULT_CONFIG.patience
 FREEZE_RATIO = 0.7  # Phase 2: giữ đóng băng 70% block đầu của backbone, chỉ fine-tune phần cuối
 
 # Device

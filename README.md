@@ -135,6 +135,33 @@ docker run -p 8501:8501 -v $(pwd)/models:/app/models bean-leaf-app
 
 ## 🚀 Huấn luyện Mô hình (Training)
 
+### 0. Controlled Benchmark Protocol
+
+Để so sánh công bằng giữa 4 kiến trúc, hyperparameter dùng chung được tập trung tại
+[`src/bean_leaf/config.py`](src/bean_leaf/config.py) (`DEFAULT_CONFIG`) - đổi 1 giá trị áp
+dụng ngay cho cả 4 model, thay vì khai báo lặp lại rải rác từng file:
+
+| Tham số | Giá trị | Lý do |
+|---|:---:|---|
+| `img_size` | **384** | Giữ chi tiết vết bệnh nhỏ (đốm góc lá, gỉ sắt) sắc nét hơn; khớp sẵn với DeiT3 (`patch16_384`) |
+| `batch_size` | 32 | Đảm bảo ổn định gradient |
+| `num_epochs` | 30 | Đủ để fine-tune hội tụ |
+| `learning_rate` | 3e-4 | Chuẩn cho Transfer Learning + AdamW |
+| `weight_decay` | 1e-2 | Giảm overfitting |
+| `patience` | 7 | Early stopping vừa đủ |
+| `label_smoothing` | 0.05 | Làm mềm phân phối nhãn giữa các lớp bệnh tương đồng |
+
+Cơ chế đặc thù từng kiến trúc (OneCycleLR `max_lr` của VGG, 2 learning rate của MobileNetV3
+2-phase, warmup/EMA của DeiT) vẫn giữ riêng trong từng file model vì không có tương đương ở
+cấu hình chung. Xem `tests/test_models.py` để verify forward pass đúng shape sau khi đổi
+`DEFAULT_CONFIG.img_size`.
+
+> ⚠️ Bảng benchmark ở mục [Kết quả Thực nghiệm](#-kết-quả-thực-nghiệm--đánh-giá-benchmark--evaluation)
+> bên dưới được đo **trước** khi áp dụng Controlled Benchmark Protocol này (mỗi model dùng
+> resolution/hyperparameter riêng khớp notebook gốc: VGG 400px/80 epoch, EfficientNet 350px,
+> MobileNetV3 224px/2-phase, DeiT 384px/20 epoch). Cần train lại để có số liệu mới dưới
+> protocol 384px thống nhất.
+
 ### 1. Huấn luyện Mô hình Phân loại (Classification)
 
 Sử dụng lệnh CLI [`scripts/train.py`](scripts/train.py):
@@ -165,25 +192,16 @@ python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50 --model_
 
 ## 📈 Kết quả Thực nghiệm & Đánh giá (Benchmark & Evaluation)
 
-### 🔬 Phương pháp luận Đánh giá Chuẩn hóa (Controlled Benchmark Protocol)
-
-Để đảm bảo kết quả so sánh giữa các mô hình Phân loại (Classification) đạt chuẩn **minh bạch và công bằng 100%**, toàn bộ 4 mô hình (`BeanLeafVGG`, `EfficientNet-B3`, `MobileNetV3-Large`, `DeiT-Small`) được huấn luyện và đánh giá trên cùng một quy trình kiểm soát cố định:
-- **Độ phân giải ảnh đồng nhất:** `224 x 224` pixels.
-- **Dataloader & Augmentation dùng chung:** Động tác lật ngang/dọc, xoay nhẹ affine,jitter độ sáng và chuẩn hóa `IMAGENET_MEAN/STD`.
-- **Cùng Siêu tham số:** `Batch Size = 32`, `Optimizer = AdamW (weight_decay = 0.01)`, `NUM_EPOCHS = 30`, `Patience = 7`.
-
----
-
 ### 1. Hiệu năng Mô hình Phân loại (Classification Benchmark)
 
-Kết quả đánh giá trên tập kiểm thử (Test Set) theo quy trình chuẩn hóa:
+Kết quả đánh giá độc lập trên tập kiểm thử (Test Set):
 
-| Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Phân nhóm Tối ưu |
+| Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Ưu thế |
 |---|:---:|:---:|---|
-| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | **High Accuracy / Server:** Cơ chế Self-Attention khai thác ngữ cảnh toàn cục tốt nhất |
-| **BeanLeafVGG** (Custom CNN) | **98.50%** | ~4.7M | **Baseline Custom:** CNN tự thiết kế từ đầu (Scratch), đạt hiệu năng xuất sắc |
-| **EfficientNet-B3** | **96.24%** | ~13.0M | **Balanced Model:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa |
-| **MobileNetV3-Large** | **94.74%** | ~3.2M | **Edge / Mobile:** Siêu nhẹ (~3.2M params), tốc độ suy luận nhanh nhất cho di động |
+| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Đạt kết quả SOTA nhờ cơ chế Self-Attention khai thác ngữ cảnh toàn cục |
+| **BeanLeafVGG** (Custom CNN) | **98.50%** | ~4.7M | Kiến trúc CNN tùy chỉnh tối ưu, đạt độ chính xác cao dù train từ đầu |
+| **EfficientNet-B3** | **96.24%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
+| **MobileNetV3-Large** | **94.74%** | ~3.2M | Kiến trúc siêu nhẹ, đáp ứng tức thì cho thiết bị di động / Edge |
 
 #### Đánh giá độ ổn định qua 5-Fold Cross-Validation:
 
@@ -197,15 +215,13 @@ Kết quả đánh giá trên tập kiểm thử (Test Set) theo quy trình chu�
 
 ### 2. Hiệu năng Mô hình Phân vùng (YOLOv8 Instance Segmentation)
 
-*Lưu ý: YOLOv8-seg giải bài toán Phân vùng tổn thương (Instance Segmentation - phát hiện vị trí ổ bệnh & vẽ mặt nạ mask), được đánh giá theo thang đo mAP riêng biệt thay vì Accuracy phân loại single-label.*
-
 - **Box mAP@0.5:** 68.0%
 - **Mask mAP@0.5:** 68.0% | **Mask mAP@0.5:0.95:** 48.4%
 - **Mask mAP@0.5 theo từng phân lớp:**
   - `healthy`: **93.0%** (Ranh giới lá phân biệt rõ ràng)
   - `angular_leaf_spot`: **65.0%** (Vùng bệnh đốm dạng góc đa giác)
   - `bean_rust`: **42.0%** (Đốm nhỏ rải rác)
-- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS), đáp ứng hoàn hảo yêu cầu realtime.
+- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS), phục vụ tốt cho phân tích thời gian thực.
 
 ---
 

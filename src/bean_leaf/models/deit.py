@@ -12,16 +12,21 @@ from tqdm import tqdm
 import timm
 from timm.utils import ModelEmaV2
 
+from bean_leaf.config import DEFAULT_CONFIG
+
 # ===================== CONFIGURATION =====================
-NUM_CLASSES = 3
-IMG_SIZE = 224
-BATCH_SIZE = 32
-NUM_EPOCHS = 30
-LEARNING_RATE = 1e-4
-WEIGHT_DECAY = 1e-2
+# Đọc từ config.py trung tâm (Single Source of Truth) - đổi DEFAULT_CONFIG áp dụng ngay ở đây.
+# IMG_SIZE=384 khớp sẵn với timm 'deit3_small_patch16_384'.
+NUM_CLASSES = DEFAULT_CONFIG.num_classes
+IMG_SIZE = DEFAULT_CONFIG.img_size
+BATCH_SIZE = DEFAULT_CONFIG.batch_size
+NUM_EPOCHS = DEFAULT_CONFIG.num_epochs
+LEARNING_RATE = DEFAULT_CONFIG.learning_rate
+WEIGHT_DECAY = DEFAULT_CONFIG.weight_decay
+PATIENCE = DEFAULT_CONFIG.patience
+LABEL_SMOOTHING = DEFAULT_CONFIG.label_smoothing
+# Riêng của DeiT (không thuộc config chung): warmup + EMA
 WARMUP_EPOCHS = 2
-PATIENCE = 7
-LABEL_SMOOTHING = 0.0
 EMA_DECAY = 0.9998
 GRAD_CLIP = 1.0
 
@@ -96,7 +101,7 @@ def validate(model, loader, criterion, device):
 def create_deit_model(num_classes=NUM_CLASSES, pretrained=True):
     """Create DeiT model using timm"""
     model = timm.create_model(
-        'deit_small_patch16_224',
+        'deit3_small_patch16_384.fb_in1k',
         pretrained=pretrained,
         num_classes=num_classes
     )

@@ -29,8 +29,17 @@ def load_yolo_checkpoint(model_path):
 
 
 def train_yolo_model(model, data_yaml_path, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE,
-                      img_size=IMG_SIZE, patience=PATIENCE, device=None):
-    """Train qua Ultralytics API, augmentation config khớp notebook 06_yolo_segmentation."""
+                      img_size=IMG_SIZE, patience=PATIENCE, device=None,
+                      weight_decay=1e-3, mixup=0.0):
+    """
+    Train qua Ultralytics API, augmentation config khớp notebook 06_yolo_segmentation,
+    trừ 2 chỗ đã tune riêng cho model size "s" (nhiều tham số hơn "n" ~3.6x, dataset chỉ
+    ~3100 ảnh train nên dễ overfit hơn nếu giữ nguyên regularization của "n"):
+      - weight_decay: 5e-4 (mặc định Ultralytics, tối ưu cho "n") -> 1e-3, phạt trọng số
+        mạnh hơn tương ứng với model lớn hơn.
+      - mixup: 0.1 -> 0.0, vì trộn ảnh (mixup) làm mờ ranh giới vết bệnh nhỏ/rải rác
+        (đặc biệt bean_rust) - hại nhiều hơn lợi cho segmentation mask ở dataset này.
+    """
     return model.train(
         data=data_yaml_path,
         epochs=epochs,
@@ -44,6 +53,7 @@ def train_yolo_model(model, data_yaml_path, epochs=NUM_EPOCHS, batch_size=BATCH_
         exist_ok=True,
         pretrained=True,
         optimizer='auto',
+        weight_decay=weight_decay,
         verbose=True,
         seed=42,
         deterministic=True,
@@ -59,7 +69,7 @@ def train_yolo_model(model, data_yaml_path, epochs=NUM_EPOCHS, batch_size=BATCH_
         flipud=0.0,
         fliplr=0.5,
         mosaic=1.0,
-        mixup=0.1,
+        mixup=mixup,
     )
 
 

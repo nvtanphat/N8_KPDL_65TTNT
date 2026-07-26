@@ -2,9 +2,11 @@
 Bean Leaf Classification - Main Training Script
 Hỗ trợ 4 model PyTorch: VGG (custom), EfficientNet-B3, MobileNetV3, DeiT
 
-Mỗi kiến trúc sở hữu hyperparameter riêng của nó (IMG_SIZE, BATCH_SIZE, optimizer...)
-ngay trong module bean_leaf.models.<tên_model> - script này chỉ điều phối:
-augmentation & dataloader dùng chung, vòng train/early-stopping dùng chung.
+Hyperparameter dùng chung (img_size, batch_size, epochs, lr, weight_decay, patience,
+label_smoothing) đọc từ bean_leaf.config.DEFAULT_CONFIG (Single Source of Truth) - mỗi
+model module chỉ còn giữ riêng cơ chế đặc thù kiến trúc (OneCycleLR max_lr của VGG,
+2-phase LR của MobileNetV3, warmup/EMA của DeiT). Script này điều phối: augmentation &
+dataloader dùng chung, vòng train/early-stopping dùng chung.
 """
 
 import argparse
@@ -13,6 +15,7 @@ import os
 import torch
 from torchvision.transforms import InterpolationMode
 
+from bean_leaf.config import DEFAULT_CONFIG
 from bean_leaf.data.dataset import create_df, get_dataloaders
 from bean_leaf.data import eda
 from bean_leaf.data.kaggle_download import download_dataset
@@ -22,7 +25,7 @@ from bean_leaf.utils.paths import get_default_output_dir
 
 from bean_leaf.models import vgg_custom, efficientnet, mobilenetv3, deit
 
-NUM_CLASSES = 3
+NUM_CLASSES = DEFAULT_CONFIG.num_classes
 ALL_MODELS = ['vgg', 'efficientnet', 'mobilenet', 'deit']
 device = vgg_custom.device
 
@@ -36,18 +39,16 @@ MODEL_REGISTRY = {
 
 
 def get_model_dataloaders(model_name, train_dir, val_dir):
-    """Dataloader dùng augmentation dùng chung, resize theo IMG_SIZE riêng của từng kiến trúc."""
+    """Dataloader dùng img_size/batch_size từ DEFAULT_CONFIG, interpolation riêng theo kiến trúc."""
     entry = MODEL_REGISTRY[model_name]
-    module = entry['module']
-    train_tf = build_train_transform(module.IMG_SIZE, entry['interpolation'])
-    val_tf = build_val_transform(module.IMG_SIZE, entry['interpolation'])
-    return get_dataloaders(train_dir, val_dir, train_tf, val_tf, module.BATCH_SIZE)
+    train_tf = build_train_transform(DEFAULT_CONFIG.img_size, entry['interpolation'])
+    val_tf = build_val_transform(DEFAULT_CONFIG.img_size, entry['interpolation'])
+    return get_dataloaders(train_dir, val_dir, train_tf, val_tf, DEFAULT_CONFIG.batch_size)
 
 
 # ===================== TRAINING FUNCTIONS =====================
 def train_model(model_name, train_loader, val_loader, model, output_dir):
     """Train a specific model, skip nếu checkpoint đã tồn tại"""
-    module = MODEL_REGISTRY[model_name]['module']
     model_output_dir = os.path.join(output_dir, model_name)
     os.makedirs(model_output_dir, exist_ok=True)
     model_path = os.path.join(model_output_dir, f'best_{model_name}_model.pth')
@@ -66,7 +67,7 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
         print(f"\n[SAVED] Model saved to {model_path}")
         return model
 
-    epochs = module.NUM_EPOCHS
+    epochs = DEFAULT_CONFIG.num_epochs
 
     if model_name == 'deit':
         criterion, optimizer, scheduler, model_ema = deit.get_optimizer_scheduler(model, train_loader, epochs)
@@ -80,7 +81,7 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
         train_fn, val_fn = efficientnet.train_one_epoch, efficientnet.validate
         model_ema = None
 
-    early_stopping = EarlyStopping(patience=module.PATIENCE, verbose=True, path=model_path)
+    early_stopping = EarlyStopping(patience=DEFAULT_CONFIG.patience, verbose=True, path=model_path)
 
     for epoch in range(epochs):
         print(f"\nEpoch {epoch + 1}/{epochs}")

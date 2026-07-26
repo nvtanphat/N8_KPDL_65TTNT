@@ -7,11 +7,11 @@ flip cả 2 chiều + affine nhẹ (rotate ±10°, shift 5%, zoom 95-105%) + bri
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
-IMAGENET_MEAN = [0.485, 0.456, 0.406]
-IMAGENET_STD = [0.229, 0.224, 0.225]
+from bean_leaf.config import DEFAULT_CONFIG
 
 
-def build_train_transform(img_size=224, interpolation=InterpolationMode.BILINEAR):
+def build_train_transform(img_size=None, interpolation=InterpolationMode.BILINEAR):
+    img_size = img_size or DEFAULT_CONFIG.img_size
     return transforms.Compose([
         transforms.Resize((img_size, img_size), interpolation=interpolation),
         transforms.RandomHorizontalFlip(p=0.5),
@@ -26,13 +26,14 @@ def build_train_transform(img_size=224, interpolation=InterpolationMode.BILINEAR
         ),
         transforms.ColorJitter(brightness=0.1),
         transforms.ToTensor(),
-        transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+        transforms.Normalize(DEFAULT_CONFIG.imagenet_mean, DEFAULT_CONFIG.imagenet_std),
     ])
 
 
-def build_val_transform(img_size=224, interpolation=InterpolationMode.BILINEAR):
+def build_val_transform(img_size=None, interpolation=InterpolationMode.BILINEAR):
+    img_size = img_size or DEFAULT_CONFIG.img_size
     return transforms.Compose([
         transforms.Resize((img_size, img_size), interpolation=interpolation),
         transforms.ToTensor(),
-        transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+        transforms.Normalize(DEFAULT_CONFIG.imagenet_mean, DEFAULT_CONFIG.imagenet_std),
     ])

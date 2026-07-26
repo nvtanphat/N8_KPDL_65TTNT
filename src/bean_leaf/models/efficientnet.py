@@ -8,14 +8,18 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import models
 
+from bean_leaf.config import DEFAULT_CONFIG
+
 # ===================== CONFIGURATION =====================
-NUM_CLASSES = 3
-IMG_SIZE = 224
-BATCH_SIZE = 32
-NUM_EPOCHS = 30
-LEARNING_RATE = 3e-4
-WEIGHT_DECAY = 1e-2
-PATIENCE = 7
+# Đọc từ config.py trung tâm (Single Source of Truth) - đổi DEFAULT_CONFIG áp dụng ngay ở đây.
+NUM_CLASSES = DEFAULT_CONFIG.num_classes
+IMG_SIZE = DEFAULT_CONFIG.img_size
+BATCH_SIZE = DEFAULT_CONFIG.batch_size
+NUM_EPOCHS = DEFAULT_CONFIG.num_epochs
+LEARNING_RATE = DEFAULT_CONFIG.learning_rate
+WEIGHT_DECAY = DEFAULT_CONFIG.weight_decay
+PATIENCE = DEFAULT_CONFIG.patience
+LABEL_SMOOTHING = DEFAULT_CONFIG.label_smoothing
 
 # Device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -96,7 +100,7 @@ def create_efficientnet_model(num_classes=NUM_CLASSES, pretrained=True):
 
 def get_optimizer_scheduler(model, num_epochs=NUM_EPOCHS):
     """Create optimizer and scheduler"""
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING)
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
     return criterion, optimizer, scheduler
