@@ -35,6 +35,7 @@ outputs/
 runs/
 logs/
 *.log
+_last_run_output/
 
 # OS / editor
 .DS_Store

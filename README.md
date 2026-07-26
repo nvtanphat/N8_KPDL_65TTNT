@@ -1,247 +1,220 @@
-# 🍃 Bean Leaf Lesions Classification & Segmentation
+# 🍃 Bean Leaf Lesions Classification & Instance Segmentation
 
-> **Tác giả:** Nguyễn Văn Tấn Phát & Nguyễn Hoàng Lộc  
-> *(Ghi chú: Dự án được khởi đầu và phát triển từ đồ án môn học Khai phá dữ liệu - Data Mining)*
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-EE4C2C.svg)](https://pytorch.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B.svg)](https://streamlit.io/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
----
-
-## 📌 Giới thiệu (Overview)
-
-Dự án ứng dụng các mô hình **Deep Learning** tiên tiến (bao gồm Convolutional Neural Networks - CNNs, Vision Transformers - ViT, và Instance Segmentation) để tự động phát hiện, phân loại tổn thương và phân vùng vị trí bệnh hại trên lá đậu (Bean Leaves).
-
-### ✨ Đặc điểm nổi bật
-- **PyTorch Ecosystem:** Toàn bộ quy trình huấn luyện và suy luận được xây dựng đồng bộ trên nền tảng PyTorch và Torchvision.
-- **Kiến trúc Modular & Scalable:** Gói mã nguồn `src/bean_leaf/` được thiết kế dạng Python Package chuẩn (`pip install -e .`), giúp tái sử dụng linh hoạt giữa CLI, Notebooks, Web App và CI/CD.
-- **Hỗ trợ Đa mô hình (Multi-architecture):** Huấn luyện & đánh giá 5 kiến trúc từ baseline CNN tự dựng, MobileNetV3 (Lightweight), EfficientNet-B3, Vision Transformer (DeiT) tới YOLOv8-seg (Segmentation).
-- **Ứng dụng Web Tương tác (Streamlit & Docker):** Giao diện Streamlit hỗ trợ tải ảnh, dự đoán real-time, biểu đồ xác suất, gợi ý xử lý và chế độ so sánh song song (*Compare Mode*) giữa các mô hình.
+Một hệ thống **Deep Learning** toàn diện cho việc tự động chẩn đoán, phân loại tổn thương và phân vùng vị trí bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp nhiều kiến trúc tiên tiến từ CNN truyền thống, Vision Transformer (DeiT) đến Instance Segmentation (YOLOv8-seg), đi kèm ứng dụng Web tương tác Streamlit và Docker hỗ trợ triển khai thực tế.
 
 ---
 
-## 📊 Dataset (Tập dữ liệu)
+## 📌 Tính năng Nổi bật
 
-Dự án sử dụng **Bean Leaf Lesions Dataset**:
-- **Nguồn dữ liệu:** [Kaggle - Bean Leaf Lesions Classification](https://www.kaggle.com/datasets/marquis03/bean-leaf-lesions-classification)
-- **Dữ liệu Phân vùng (Instance Segmentation):** [Roboflow Universe - Bean Leaf Segmentation](https://universe.roboflow.com/alebachew-m/final_instance_segmentation)
-- **Các lớp bài toán (3 classes):**
-  1. `angular_leaf_spot` (Bệnh đốm góc lá)
-  2. `bean_rust` (Bệnh gỉ sắt)
-  3. `healthy` (Lá khỏe mạnh)
+- **Mô hình Phân loại & Phân vùng Đa dạng (Multi-Architecture System):**
+  - **Custom CNN (BeanLeafVGG):** Kiến trúc CNN nhẹ tự thiết kế làm baseline.
+  - **EfficientNet-B3:** Tối ưu hóa sự cân bằng giữa số lượng tham số và độ chính xác.
+  - **MobileNetV3-Large:** Kiến trúc siêu nhẹ, tối ưu cho thời gian thực và thiết bị di động (Edge devices).
+  - **DeiT-Small (Vision Transformer):** Khai thác cơ chế Self-Attention cho độ chính xác SOTA (**99.25%**).
+  - **YOLOv8-seg (Instance Segmentation):** Phát hiện chính xác vị trí và tạo mask phân vùng ổ bệnh realtime.
 
-> 💡 **Chi tiết về cách chuẩn bị dữ liệu:** Xem hướng dẫn tại [data/README.md](data/README.md).
+- **Thiết kế Modular dạng Python Package (`bean_leaf`):**
+  - Đóng gói chuẩn theo quy chuẩn Python (`pip install -e .`).
+  - Dễ dàng tái sử dụng mã nguồn giữa các tập lệnh CLI, Notebooks, Web Application và bộ test CI/CD.
 
----
+- **Ứng dụng Web Tương tác (Streamlit App):**
+  - **Single View:** Phân tích ảnh đơn, hiển thị biểu đồ xác suất và đưa ra gợi ý xử lý nông nghiệp.
+  - **Compare Mode:** So sánh dự đoán song song giữa các mô hình trên cùng một bức ảnh.
+  - **Segmentation View:** Hiển thị vị trí ổ bệnh được khoanh vùng trực quan bằng YOLOv8.
 
-## 🏗️ Kiến trúc các Mô hình (Model Architectures)
-
-| Mô hình | Loại | Mô tả / Đặc điểm | PyTorch Module |
-|---|---|---|---|
-| **BeanLeafVGG** | CNN Custom | Mạng CNN tự thiết kế (baseline model) | [`bean_leaf.models.vgg_custom`](src/bean_leaf/models/vgg_custom.py) |
-| **EfficientNet-B3** | CNN Transfer | Tối ưu hóa sự cân bằng giữa độ chính xác và tham số | [`bean_leaf.models.efficientnet`](src/bean_leaf/models/efficientnet.py) |
-| **MobileNetV3-Large** | CNN Lightweight | Kiến trúc siêu nhẹ, tối ưu cho thiết bị di động / Edge | [`bean_leaf.models.mobilenetv3`](src/bean_leaf/models/mobilenetv3.py) |
-| **DeiT-Small** | Vision Transformer | Data-efficient Image Transformer (sử dụng `timm`) | [`bean_leaf.models.deit`](src/bean_leaf/models/deit.py) |
-| **YOLOv8-seg** | Instance Segmentation | Phát hiện vị trí & vẽ mask phân vùng vùng bệnh (Ultralytics) | [`bean_leaf.models.yolo_seg`](src/bean_leaf/models/yolo_seg.py) |
+- **Sẵn sàng Triển khai & Tự động hóa:**
+  - Đóng gói container chuẩn hóa với **Docker**.
+  - Tích hợp **GitHub Actions CI/CD** tự động kiểm thử unit test (`pytest`).
 
 ---
 
-## 📁 Cấu trúc Dự án (Project Structure)
+## 📊 Tập dữ liệu (Dataset)
+
+Dự án kết hợp các tập dữ liệu chuẩn mực được tiền xử lý và gán nhãn:
+- **Bài toán Phân loại (Classification):** [Bean Leaf Lesions Dataset](https://www.kaggle.com/datasets/marquis03/bean-leaf-lesions-classification)
+- **Bài toán Phân vùng (Instance Segmentation):** [Roboflow Universe - Bean Leaf Segmentation](https://universe.roboflow.com/alebachew-m/final_instance_segmentation)
+
+**Các lớp bệnh hại (3 Classes):**
+1. `angular_leaf_spot` — Bệnh đốm góc lá
+2. `bean_rust` — Bệnh gỉ sắt
+3. `healthy` — Lá khỏe mạnh
+
+> 💡 *Hướng dẫn chi tiết về cấu trúc dữ liệu có tại [data/README.md](data/README.md).*
+
+---
+
+## 🏗️ Cấu trúc Dự án
 
 ```bash
 bean-leaf-disease/
-├── .github/workflows/ci.yml    # CI workflow tự động kiểm thử (pytest)
-├── app/                        # Ứng dụng Web Streamlit
-│   ├── config.py               # Cấu hình danh sách mô hình & khuyến nghị
-│   ├── streamlit_app.py        # Giao diện ứng dụng chính
-│   └── utils.py                # Wrapper load model và suy luận (inference)
-├── data/                       # Thư mục dữ liệu (xem data/README.md)
+├── .github/workflows/ci.yml    # Pipeline CI/CD kiểm thử tự động
+├── app/                        # Giao diện Web App Streamlit
+│   ├── config.py               # Thẻ cấu hình mô hình & khuyến nghị chẩn đoán
+│   ├── streamlit_app.py        # Ứng dụng chính Streamlit
+│   └── utils.py                # Pipeline nạp mô hình & xử lý suy luận
+├── data/                       # Quản lý tập dữ liệu (xem data/README.md)
 ├── docker/
-│   └── Dockerfile              # Dockerfile đóng gói Web App
-├── kaggle_job/                  # Job train 4 model classification trên GPU Kaggle Kernels
-├── kaggle_job_yolo/             # Job train YOLOv8-seg trên GPU Kaggle Kernels (dataset Roboflow)
-├── models/                     # Checkpoint đã train (xem models/README.md)
+│   └── Dockerfile              # Cấu hình Docker build container
+├── models/                     # Thư mục chứa weights / checkpoints (xem models/README.md)
 ├── notebooks/
-│   └── 01_eda.ipynb            # Notebook khám phá và trực quan hóa dữ liệu (EDA)
+│   └── 01_eda.ipynb            # Khám phá & Trực quan hóa dữ liệu (EDA)
 ├── scripts/
-│   ├── train.py                # CLI entrypoint train 4 mô hình Classification
-│   └── train_yolo.py           # CLI entrypoint train YOLOv8 Segmentation
-├── src/bean_leaf/              # Core Package (cài qua `pip install -e .`)
-│   ├── data/                   # Dataset class, DataLoaders, Augmentations
-│   ├── evaluation/             # Metrics (Accuracy, F1, Confusion Matrix, Grad-CAM)
-│   ├── models/                 # Định nghĩa các kiến trúc mô hình (PyTorch)
-│   ├── training/               # EarlyStopping, Trainer Utilities
-│   └── utils/                  # Quản lý đường dẫn và cấu hình
-├── tests/                      # Bộ kiểm thử đơn vị (Pytest smoke tests)
-├── pyproject.toml              # Cấu hình package Python
-└── requirements.txt            # Danh sách các thư viện phụ thuộc
+│   ├── train.py                # Script huấn luyện các mô hình Phân loại (Classification)
+│   └── train_yolo.py           # Script huấn luyện mô hình Phân vùng (YOLOv8-seg)
+├── src/bean_leaf/              # Core Library Package
+│   ├── data/                   # Dataset Handlers, DataLoaders & Augmentations
+│   ├── evaluation/             # Đánh giá chỉ số (Accuracy, F1, Confusion Matrix, Grad-CAM)
+│   ├── models/                 # Định nghĩa các kiến trúc mô hình PyTorch & Ultralytics
+│   ├── training/               # Quản lý vòng lặp huấn luyện & Early Stopping
+│   └── utils/                  # Utility helpers & Cấu hình đường dẫn
+├── tests/                      # Bộ unit tests cho kiểm thử tự động
+├── pyproject.toml              # Cấu hình cài đặt package Python
+└── requirements.txt            # Danh sách thư viện phụ thuộc
 ```
 
 ---
 
-## ⚙️ Cài đặt (Installation)
+## ⚙️ Cài đặt & Chuẩn bị Môi trường
 
-### 1. Clone Repository & Tạo Môi trường ảo
+### 1. Yêu cầu Hệ thống
+- Python **3.10+**
+- Git & Virtualenv / Conda
+
+### 2. Clone Repository & Khởi tạo Môi trường ảo
 
 ```bash
+# Clone dự án
 git clone https://github.com/nvtanphat/bean-leaf-disease.git
 cd bean-leaf-disease
 
-# Tạo venv (khuyến nghị Python 3.10+)
+# Tạo môi trường ảo
 python -m venv venv
 
-# Kích hoạt venv
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
+# Kích hoạt môi trường ảo
+# Trên Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# Trên Linux / macOS:
 source venv/bin/activate
 ```
 
-### 2. Cài đặt Dependencies & Local Package
+### 3. Cài đặt Phụ thuộc & Package Local
 
 ```bash
 pip install -r requirements.txt
 pip install -e .
 ```
-> 🔹 **Lưu ý:** Lệnh `pip install -e .` cho phép import trực tiếp package `bean_leaf` từ bất kỳ đâu (`scripts/`, `app/`, `tests/`) mà không cần tùy chỉnh `sys.path`.
+*(Lưu ý: Lệnh `pip install -e .` sẽ cài đặt `bean_leaf` dưới dạng editable package, cho phép import package ổn định từ mọi nơi trong dự án).*
+
+---
+
+## 💻 Triển khai & Sử dụng Web App
+
+### 1. Chạy Trực tiếp với Streamlit
+
+```bash
+streamlit run app/streamlit_app.py
+```
+Ứng dụng sẽ tự động mở tại giao diện trình duyệt local: `http://localhost:8501`.
+
+### 2. Triển khai với Docker
+
+```bash
+# Xây dựng Docker Image
+docker build -t bean-leaf-app -f docker/Dockerfile .
+
+# Chạy Docker Container (mount thư mục models chứa weights)
+docker run -p 8501:8501 -v $(pwd)/models:/app/models bean-leaf-app
+```
 
 ---
 
 ## 🚀 Huấn luyện Mô hình (Training)
 
-### 1. Huấn luyện các mô hình Classification (PyTorch)
+### 1. Huấn luyện Mô hình Phân loại (Classification)
 
-Sử dụng script [`scripts/train.py`](scripts/train.py) để train các mô hình Classification:
+Sử dụng lệnh CLI [`scripts/train.py`](scripts/train.py):
 
 ```bash
-python scripts/train.py --data_dir "./data" --model [tên_model] [options]
-```
-
-**Các tham số chính:**
-- `--data_dir`: Đường dẫn thư mục chứa dataset (cấu trúc `train/`, `val/`).
-- `--download`: Tự tải dataset từ Kaggle vào `--data_dir` trước khi train qua Kaggle CLI (bỏ qua
-  nếu `<data_dir>/train` đã tồn tại) - cần cấu hình credential trước, xem [data/README.md](data/README.md).
-- `--model`: Chọn mô hình cần huấn luyện: `vgg`, `efficientnet`, `mobilenet`, `deit`, hoặc `all` (train lần lượt tất cả).
-- `--output_dir`: Đường dẫn lưu checkpoints (mặc định: `./outputs`, override bằng env `BEAN_LEAF_OUTPUT_DIR`).
-- `--eda`: (Option) Tự động chạy phân tích dữ liệu trước khi huấn luyện.
-
-Epoch/batch size/optimizer... là hyperparameter riêng của từng kiến trúc, nằm cố định trong
-`src/bean_leaf/models/<tên_model>.py` (không phải CLI flag) - sửa trực tiếp trong đó nếu cần tinh chỉnh.
-
-**Ví dụ:**
-```bash
-# Tải data từ Kaggle rồi train toàn bộ 4 model - chạy end-to-end 1 lệnh
-python scripts/train.py --data_dir "./data" --download --model all
-
-# Data đã có sẵn, chỉ train riêng EfficientNet-B3
+# Huấn luyện một mô hình cụ thể (ví dụ: EfficientNet)
 python scripts/train.py --data_dir "./data" --model efficientnet
+
+# Huấn luyện lần lượt tất cả mô hình phân loại
+python scripts/train.py --data_dir "./data" --model all
 ```
 
-> 📌 Checkpoint mô hình xuất ra sẽ nằm tại `outputs/<model_name>/best_<model_name>_model.pth`. Sau khi train xong, copy checkpoint vào thư mục `models/` để Web App có thể đọc (xem chi tiết tại [models/README.md](models/README.md)).
+Các tham số bổ sung:
+- `--model`: Lựa chọn mô hình (`vgg`, `efficientnet`, `mobilenet`, `deit`, `all`).
+- `--output_dir`: Thư mục lưu checkpoint kết quả (mặc định: `./outputs`).
+- `--eda`: Tự động thực hiện phân tích EDA dữ liệu trước khi train.
 
----
+### 2. Huấn luyện Mô hình Phân vùng (YOLOv8 Segmentation)
 
-### 2. Huấn luyện mô hình YOLOv8 Segmentation
-
-Sử dụng script [`scripts/train_yolo.py`](scripts/train_yolo.py) với dataset định dạng Ultralytics (`data.yaml`):
+Sử dụng lệnh CLI [`scripts/train_yolo.py`](scripts/train_yolo.py):
 
 ```bash
 python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50 --model_size n
 ```
 
----
-
-### 3. Train trên GPU miễn phí của Kaggle (không cần máy có GPU)
-
-Đẩy job train lên chạy trên GPU Kaggle Kernels, điều khiển từ terminal local qua Kaggle CLI:
-- 4 model classification (`scripts/train.py --model all`) - xem [kaggle_job/README.md](kaggle_job/README.md).
-- YOLOv8-seg (`scripts/train_yolo.py`, dataset Roboflow, mặc định dùng model size `s` thay vì
-  `n` để mAP cao hơn) - xem [kaggle_job_yolo/README.md](kaggle_job_yolo/README.md).
 
 ---
 
-## 💻 Ứng dụng Web & Triển khai (Inference & Deployment)
+## 📈 Kết quả Thực nghiệm & Đánh giá (Benchmark & Evaluation)
 
-### 1. Chạy Web App trực tiếp với Streamlit
+### 1. Hiệu năng Mô hình Phân loại (Classification Benchmark)
 
-```bash
-streamlit run app/streamlit_app.py
-```
+Kết quả đánh giá độc lập trên tập kiểm thử (Test Set):
 
-Các tính năng chính trên Web App:
-- 🖼️ **Single View:** Phân tích ảnh với 1 mô hình đã chọn, hiển thị xác suất dự đoán và thông tin điều trị bệnh.
-- ⚖️ **Compare Mode:** Chế độ so sánh song song dự đoán của tất cả mô hình trên cùng 1 bức ảnh.
-- 🎯 **Segmentation View:** Chế độ phân vùng phát hiện vị trí tổn thương đốm bệnh bằng YOLOv8-seg.
-
----
-
-### 2. Triển khai ứng dụng qua Docker
-
-Đóng gói và khởi chạy Web App bằng Docker container:
-
-```bash
-# Build Docker image
-docker build -t bean-leaf-app -f docker/Dockerfile .
-
-# Khởi chạy container trên port 8501
-docker run -p 8501:8501 -v $(pwd)/models:/app/models bean-leaf-app
-```
-Sau đó truy cập ứng dụng tại: `http://localhost:8501`.
-
----
-
-## 📈 Kết quả Thực nghiệm & Đánh giá (Experimental Results)
-
-Dưới đây là tổng hợp kết quả đánh giá thực nghiệm chi tiết trích xuất từ báo cáo thử nghiệm trên cùng tập dữ liệu kiểm thử:
-
-### 1. Phân loại bệnh (Classification Performance)
-
-#### Bảng so sánh tổng hợp các chỉ số hiệu năng trên tập Kiểm thử:
-
-| Mô hình (Model) | Val Accuracy (Early-Stop) | Số tham số | Đặc điểm chính |
+| Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Ưu thế |
 |---|:---:|:---:|---|
-| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Đạt kết quả SOTA nhờ cơ chế Self-Attention khai thác ngữ cảnh toàn cục (đã fix EMA). |
-| **BeanLeafVGG** (Custom CNN) | **98.50%** | ~4.7M | CNN tự xây dựng từ scratch với kết quả xuất sắc dù không dùng weights pretrained. |
-| **EfficientNet-B3** | **96.24%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng giữa độ chính xác và số lượng tham số. |
-| **MobileNetV3-Large** | **94.74%** | ~3.2M | Mô hình siêu nhẹ, tối ưu cho ứng dụng thời gian thực và thiết bị di động / edge. |
+| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Đạt kết quả SOTA nhờ cơ chế Self-Attention khai thác ngữ cảnh toàn cục |
+| **BeanLeafVGG** (Custom CNN) | **98.50%** | ~4.7M | Kiến trúc CNN tùy chỉnh tối ưu, đạt độ chính xác cao dù train từ đầu |
+| **EfficientNet-B3** | **96.24%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
+| **MobileNetV3-Large** | **94.74%** | ~3.2M | Kiến trúc siêu nhẹ, đáp ứng tức thì cho thiết bị di động / Edge |
 
-#### Độ ổn định qua 5-Fold Cross-Validation:
+#### Đánh giá độ ổn định qua 5-Fold Cross-Validation:
 
-| Mô hình (Model) | Độ chính xác trung bình (5-Fold CV) |
+| Mô hình | Độ chính xác trung bình (5-Fold CV) |
 |---|:---:|
 | **DeiT-Small** | **98.29% ± 0.47%** |
-| **BeanLeafVGG** (CNN tự xây) | **97.10%** |
+| **BeanLeafVGG** | **97.10%** |
 | **MobileNetV3-Large** | **96.57% ± 0.80%** |
 
 ---
 
-### 2. Phân vùng bệnh (YOLOv8-seg Instance Segmentation)
+### 2. Hiệu năng Mô hình Phân vùng (YOLOv8 Instance Segmentation)
 
 - **Box mAP@0.5:** 68.0%
 - **Mask mAP@0.5:** 68.0% | **Mask mAP@0.5:0.95:** 48.4%
-- **Mask mAP@0.5 theo từng lớp:**
-  - `healthy` (Lá khỏe mạnh): **93.0%** (Ranh giới viền lá rõ ràng)
-  - `angular_leaf_spot` (Đốm góc): **65.0%** (Đốm vết bệnh lớn dạng hình đa giác)
-  - `bean_rust` (Gỉ sắt): **42.0%** (Đốm nhỏ li ti, màu sắc tương đồng nền lá)
-- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS), đáp ứng hoàn hảo yêu cầu realtime trên thiết bị di động.
+- **Mask mAP@0.5 theo từng phân lớp:**
+  - `healthy`: **93.0%** (Ranh giới lá phân biệt rõ ràng)
+  - `angular_leaf_spot`: **65.0%** (Vùng bệnh đốm dạng góc đa giác)
+  - `bean_rust`: **42.0%** (Đốm nhỏ rải rác)
+- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS), phục vụ tốt cho phân tích thời gian thực.
 
 ---
 
-## 🧪 Kiểm thử Đơn vị (Unit Testing)
+## 🧪 Kiểm thử Đơn vị (Unit Tests & Quality)
 
-Dự án tích hợp bộ test tự động sử dụng **pytest** để kiểm tra tính toàn vẹn của dataset và các mô hình PyTorch (shape output, loss computation):
+Dự án sử dụng **pytest** để đảm bảo tính toàn vẹn của dữ liệu và kiến trúc mạng:
 
 ```bash
+# Chạy bộ test suite
 pytest -v
 ```
 
-> 🔄 **CI/CD:** Hệ thống GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) tự động kích hoạt `pytest` trên mỗi lần push hoặc tạo Pull Request vào nhánh `main`.
+Hệ thống CI/CD via GitHub Actions tự động kích hoạt kiểm thử mỗi khi có thay đổi được đẩy lên repository.
 
 ---
 
-## 📝 Báo cáo Đồ án
+## 👥 Tác giả & Lời cảm ơn
 
-Báo cáo đầy đủ với phân tích định tính & định lượng, bảng so sánh metrics (Accuracy, Precision, Recall, F1-Score) và trực quan Grad-CAM đã được tổng hợp chi tiết tại mục [Kết quả Thực nghiệm](#-kết-quả-thực-nghiệm--đánh-giá-experimental-results).
+- **Nguyễn Văn Tấn Phát**
+- **Nguyễn Hoàng Lộc**
 
----
+Trân trọng cảm ơn cộng đồng mã nguồn mở **PyTorch**, **Timm**, **Ultralytics**, và **Streamlit** đã cung cấp các nền tảng và thư viện chất lượng cao.
 
-## 📜 License & Lời cảm ơn
-
-Dự án ban đầu được khởi xướng từ đồ án môn học Khai phá dữ liệu (Data Mining) và tiếp tục được nâng cấp thành một hệ thống dự án độc lập. Cảm ơn các cộng đồng mã nguồn mở **PyTorch**, **Timm**, **Ultralytics**, và **Streamlit** đã cung cấp các nền tảng tuyệt vời.
