@@ -63,11 +63,6 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn th
 | Box mAP@0.5 | **62.43%** |
 | Mask mAP@0.5 | **59.52%** |
 
-> [!NOTE]
-> Nếu chấm trên tập `val` (tập Ultralytics dùng để chọn `best.pt` lúc train) thay vì `test`,
-> mAP cao hơn hẳn (~72% box, ~69% mask) — chênh lệch này là ví dụ cụ thể cho lý do phải tách
-> `test` độc lập khỏi `val`, tương tự vấn đề đã sửa ở benchmark classification.
-
 ---
 
 ## 🏗️ Cấu trúc Dự án
