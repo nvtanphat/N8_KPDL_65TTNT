@@ -22,13 +22,13 @@ st.set_page_config(page_title="Phan Loai Benh La Dau", layout="wide")
 st.markdown("""
 <style>
     .block-container {
-        padding-top: 1.5rem !important;
+        padding-top: 3.8rem !important;
         padding-bottom: 1rem !important;
         padding-left: 2rem !important;
         padding-right: 2rem !important;
     }
     img {
-        max-height: 320px !important;
+        max-height: 300px !important;
         object-fit: contain;
     }
 </style>
