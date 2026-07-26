@@ -10,13 +10,13 @@ train xong, copy/đổi tên file theo bảng dưới đây:
 
 | Model | Output của `scripts/train.py` | Copy vào `models/` với tên |
 |---|---|---|
-| **BeanLeafLite** (Custom CNN) | `outputs/vgg/best_vgg_model.pth` | `best_beanleaflite.pth` |
-| **EfficientNet-B3** | `outputs/efficientnet/best_efficientnet_model.pth` | `best_efficientnet.pth` |
-| **MobileNetV3-Large** | `outputs/mobilenet/best_mobilenet_model.pth` | `best_mobilenetv3.pth` |
-| **DeiT-Small** | `outputs/deit/best_deit_model.pth` | `best_deit.pth` |
-| **YOLOv8-seg** | `runs/segment/train/weights/best.pt` (train bằng `scripts/train_yolo.py`) | `best_yolov8_segmentation.pt` |
+| BeanLeafLite (custom CNN) | `outputs/vgg/best_vgg_model.pth` | `model_cratch_hoangloc.pth` |
+| EfficientNet-B3 | `outputs/efficientnet/best_efficientnet_model.pth` | `best_efficientnet_model.pth` (giữ nguyên tên) |
+| MobileNetV3 | `outputs/mobilenet/best_mobilenet_model.pth` | `best_mobilenetv3.pth` |
+| DeiT | `outputs/deit/best_deit_model.pth` | `model_deit_tanphat.pth` |
+| YOLOv8-seg | `runs/segment/train/weights/best.pt` (train bằng `scripts/train_yolo.py --data_yaml ...`, hoặc `notebooks/06_yolo_segmentation.ipynb`) | `model_segemnt_yolo.pt` |
 
-Tên file đích khớp với `app/config.py::MODELS[...]['file']`.
+Tên file đích khớp với `app/config.py::MODELS[...]['file']` - đổi 1 trong 2 chỗ thì phải đổi luôn chỗ kia.
 
 > **Lưu ý:** MobileNetV3 đã được viết lại bằng PyTorch (`src/bean_leaf/models/mobilenetv3.py`),
 > thay cho bản TensorFlow/Keras cũ. Checkpoint `.keras` cũ **không tương thích** — cần train lại

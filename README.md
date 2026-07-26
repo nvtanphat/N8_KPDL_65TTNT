@@ -34,7 +34,7 @@ Hệ thống **Deep Learning** toàn diện cho việc chẩn đoán, phân lo�
 - **Hỗ trợ Đa kiến trúc (Multi-Architecture Ecosystem):**
   - **BeanLeafLite (Custom CNN):** 🛠️ Kiến trúc nhẹ tự thiết kế (~0.94M params, Acc **98.50%**).
   - **MobileNetV3-Large:** ⚡ Tối ưu hóa suy luận thời gian thực cho thiết bị di động / Edge (Acc **97.74%**).
-  - **DeiT-Small (Vision Transformer):** 🥇 Khai thác cơ chế Self-Attention khai thác ngữ cảnh toàn cục (Acc **100.00%**).
+  - **DeiT-Small (Vision Transformer):** 🥇 Khai thác cơ chế Self-Attention cho kết quả chẩn đoán chính xác tuyệt đối (Acc **100.00%**).
   - **EfficientNet-B3:** ⚖️ Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (Acc **98.50%**).
   - **YOLOv8-seg (Instance Segmentation):** 🎯 Khoanh vùng và vẽ mặt nạ (polygon mask) tổn thương đốm lá realtime.
 
