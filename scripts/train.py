@@ -9,16 +9,24 @@ VGG (OneCycleLR step theo batch + gradient clipping) và DeiT (warmup/EMA) cần
 riêng cho cơ chế đặc thù kiến trúc không có tương đương ở model khác. EfficientNet-B3
 và MobileNetV3 dùng y hệt 1 recipe (AdamW + CosineAnnealingLR, full fine-tune từ đầu)
 nên đi chung 1 nhánh - đảm bảo so sánh công bằng giữa các kiến trúc.
+
+Train/Val/Test: thư mục train được tách thêm 1 lần nữa thành train_subset +
+internal_val_subset (stratified) để early-stopping/chọn checkpoint lúc train. Thư mục
+val gốc (--data_dir/val) giữ nguyên làm TEST SET độc lập - không tham gia bất kỳ quyết
+định nào lúc train, chỉ đánh giá đúng 1 lần sau khi train xong. Dùng val vừa để
+early-stop vừa để báo cáo kết quả sẽ cho con số thiên vị lạc quan (đã chọn đúng
+checkpoint tốt nhất trên chính tập đó).
 """
 
 import argparse
 import os
 
 import torch
+import torch.nn as nn
 from torchvision.transforms import InterpolationMode
 
 from bean_leaf.config import DEFAULT_CONFIG
-from bean_leaf.data.dataset import create_df, get_dataloaders
+from bean_leaf.data.dataset import create_df, get_train_val_test_loaders
 from bean_leaf.data import eda
 from bean_leaf.data.kaggle_download import download_dataset
 from bean_leaf.data.transforms import build_train_transform, build_val_transform
@@ -42,16 +50,25 @@ MODEL_REGISTRY = {
 
 
 def get_model_dataloaders(model_name, train_dir, val_dir):
-    """Dataloader dùng img_size/batch_size từ DEFAULT_CONFIG, interpolation riêng theo kiến trúc."""
+    """train_loader + internal_val_loader (early-stopping) + test_loader (val_dir gốc, đánh giá 1 lần)."""
     entry = MODEL_REGISTRY[model_name]
     train_tf = build_train_transform(DEFAULT_CONFIG.img_size, entry['interpolation'])
     val_tf = build_val_transform(DEFAULT_CONFIG.img_size, entry['interpolation'])
-    return get_dataloaders(train_dir, val_dir, train_tf, val_tf, DEFAULT_CONFIG.batch_size)
+    return get_train_val_test_loaders(train_dir, val_dir, train_tf, val_tf, DEFAULT_CONFIG.batch_size)
+
+
+def _evaluate_on_test(model_name, model, test_loader, device):
+    """Đánh giá lần cuối trên test set (val_dir gốc) - chỉ gọi 1 lần sau khi train xong."""
+    module = MODEL_REGISTRY[model_name]['module']
+    criterion = nn.CrossEntropyLoss()
+    result = module.validate(model, test_loader, criterion, device)
+    test_loss, test_acc = result[0], result[1]
+    return test_loss, test_acc
 
 
 # ===================== TRAINING FUNCTIONS =====================
-def train_model(model_name, train_loader, val_loader, model, output_dir):
-    """Train a specific model, skip nếu checkpoint đã tồn tại"""
+def train_model(model_name, train_loader, internal_val_loader, test_loader, model, output_dir):
+    """Train a specific model, skip nếu checkpoint đã tồn tại. Trả về (model, test_acc)."""
     model_output_dir = os.path.join(output_dir, model_name)
     os.makedirs(model_output_dir, exist_ok=True)
     model_path = os.path.join(model_output_dir, f'best_{model_name}_model.pth')
@@ -59,7 +76,9 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
     if os.path.exists(model_path):
         print(f"[SKIP] Model '{model_name}' already exists at {model_path}")
         model.load_state_dict(torch.load(model_path, map_location=device))
-        return model
+        test_loss, test_acc = _evaluate_on_test(model_name, model, test_loader, device)
+        print(f"[TEST] Loss: {test_loss:.4f} | Acc: {test_acc:.4f}")
+        return model, test_acc
 
     print(f"\n[TRAIN] Training {model_name}...")
     print("=" * 60)
@@ -93,8 +112,8 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
             # Với EMA_DECAY cao (0.9998) + ít epoch, EMA hội tụ chậm hơn hẳn model gốc
             # (thực tế đo được: EMA kẹt ~35% trong khi model gốc đạt ~99% cùng lúc) - phải so
             # sánh cả 2 và lấy bên thắng, không thể mặc định luôn dùng EMA để chấm điểm/lưu.
-            val_loss, val_acc, _, _ = val_fn(model, val_loader, criterion, device)
-            ema_val_loss, ema_val_acc, _, _ = val_fn(model_ema.module, val_loader, criterion, device)
+            val_loss, val_acc, _, _ = val_fn(model, internal_val_loader, criterion, device)
+            ema_val_loss, ema_val_acc, _, _ = val_fn(model_ema.module, internal_val_loader, criterion, device)
             if ema_val_acc >= val_acc:
                 best_of_epoch, val_loss, val_acc = model_ema.module, ema_val_loss, ema_val_acc
             else:
@@ -102,14 +121,14 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
         elif model_name == 'vgg':
             # OneCycleLR đã được step theo từng batch bên trong train_fn, không step lại ở đây
             train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, scheduler, device, scaler)
-            val_loss, val_acc, _, _ = val_fn(model, val_loader, criterion, device)
+            val_loss, val_acc, _, _ = val_fn(model, internal_val_loader, criterion, device)
         else:  # efficientnet & mobilenet: CosineAnnealingLR, step 1 lần/epoch, không phụ thuộc val_loss
             train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, device, scaler)
-            val_loss, val_acc = val_fn(model, val_loader, criterion, device)
+            val_loss, val_acc = val_fn(model, internal_val_loader, criterion, device)
             scheduler.step()
 
         print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
-        print(f"Val Loss:   {val_loss:.4f} | Val Acc:   {val_acc:.4f}")
+        print(f"[Internal Val] Loss: {val_loss:.4f} | Acc: {val_acc:.4f}")
 
         # DeiT: lưu đúng model (raw hoặc EMA) vừa thắng ở epoch này
         early_stopping(val_loss, best_of_epoch if model_name == 'deit' else model)
@@ -119,7 +138,10 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
 
     model.load_state_dict(torch.load(model_path, map_location=device))
     print(f"\n[SAVED] Model saved to {model_path}")
-    return model
+
+    test_loss, test_acc = _evaluate_on_test(model_name, model, test_loader, device)
+    print(f"[TEST] Loss: {test_loss:.4f} | Acc: {test_acc:.4f}")
+    return model, test_acc
 
 
 # ===================== MAIN =====================
@@ -152,18 +174,23 @@ def main():
         eda.plot_class_distribution(train_df, title='Training Set Distribution')
 
     models_to_train = ALL_MODELS if args.model == 'all' else [args.model]
+    test_results = {}
 
     for model_name in models_to_train:
-        train_loader, val_loader = get_model_dataloaders(model_name, train_dir, val_dir)
+        train_loader, internal_val_loader, test_loader = get_model_dataloaders(model_name, train_dir, val_dir)
 
         model = MODEL_REGISTRY[model_name]['create'](NUM_CLASSES).to(device)
-        model = train_model(model_name, train_loader, val_loader, model, output_dir)
+        model, test_acc = train_model(model_name, train_loader, internal_val_loader, test_loader, model, output_dir)
+        test_results[model_name] = test_acc
 
         print(f"\n{model_name.upper()} completed!")
 
     print("\n" + "=" * 60)
     print("ALL TRAINING COMPLETED!")
     print("=" * 60)
+    print("\nTest Accuracy (val_dir gốc, đánh giá 1 lần - không dùng để chọn checkpoint):")
+    for model_name, test_acc in test_results.items():
+        print(f"  {model_name}: {test_acc:.4f}")
 
 
 if __name__ == '__main__':

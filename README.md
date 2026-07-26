@@ -163,6 +163,14 @@ forward pass đúng shape sau khi đổi `DEFAULT_CONFIG.img_size`.
 > thực tế) - `scripts/train.py` dùng Automatic Mixed Precision (`bean_leaf.training.amp`) cho
 > cả 4 model để khắc phục, không cần giảm batch/resolution.
 
+**Train / Internal-Val / Test:** thư mục `train/` được tách thêm thành `train_subset` +
+`internal_val_subset` (stratified theo nhãn, tỷ lệ 85/15) - `internal_val_subset` chỉ dùng
+để EarlyStopping/chọn checkpoint lúc train. Thư mục `val/` gốc giữ nguyên làm **test set
+độc lập**, không tham gia bất kỳ quyết định nào lúc train, chỉ đánh giá **đúng 1 lần** sau
+khi train xong. Nếu dùng `val/` vừa để early-stop vừa để báo cáo kết quả (như trước đây),
+con số sẽ bị thiên vị lạc quan vì checkpoint được chọn chính vì nó tốt nhất trên chính tập
+đó. `scripts/train.py` in ra `Test Accuracy` riêng biệt sau khi train xong mỗi model.
+
 Bảng benchmark ở mục [Kết quả Thực nghiệm](#-kết-quả-thực-nghiệm--đánh-giá-benchmark--evaluation)
 bên dưới đã được đo lại dưới protocol 384px thống nhất này.
 
@@ -198,27 +206,25 @@ python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50 --model_
 
 ### 1. Hiệu năng Mô hình Phân loại (Classification Benchmark)
 
-Kết quả đánh giá độc lập trên tập kiểm thử (Test Set):
-
 Đo dưới **Controlled Benchmark Protocol** thống nhất (384px, xem mục Training) - tất cả 4
 model dùng chung 1 resolution/hyperparameter để so sánh công bằng:
 
-| Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Ưu thế |
+| Mô hình | Test Accuracy | Số tham số | Đặc điểm & Ưu thế |
 |---|:---:|:---:|---|
-| **MobileNetV3-Large** | **100%**¹ | ~3.2M | Đạt cao nhất ở resolution 384px, phù hợp thiết bị di động / Edge |
-| **EfficientNet-B3** | **99.25%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
-| **DeiT-Small** (ViT) | **98.50%** | ~21.8M | Self-Attention khai thác ngữ cảnh toàn cục |
-| **BeanLeafLite** (Custom CNN) | **96.99%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention - **nhẹ hơn cả MobileNetV3**, giữ đúng phong độ của BeanLeafVGG cũ (~4.7M) chỉ với 1/5 tham số |
+| MobileNetV3-Large | *chờ đo lại* | ~3.2M | Phù hợp thiết bị di động / Edge |
+| EfficientNet-B3 | *chờ đo lại* | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
+| DeiT-Small (ViT) | *chờ đo lại* | ~21.8M | Self-Attention khai thác ngữ cảnh toàn cục |
+| BeanLeafLite (Custom CNN) | *chờ đo lại* | **~0.94M** | Depthwise-Separable + Residual + SE Attention - nhẹ hơn cả MobileNetV3 |
 
-> ¹ MobileNetV3 100% đo trên val set chỉ 133 ảnh - lệch 1 ảnh đã đổi ~0.75%, nên khoảng
-> cách giữa các model ở bảng trên nằm trong biên độ nhiễu thống kê, không nên coi là
-> kết luận chắc chắn "model X tốt hơn model Y".
+> Các con số 100%/99.25%/98.50%/96.99% đo ở lần chạy trước dùng `val/` vừa để
+> early-stopping vừa để báo cáo - **bị thiên vị lạc quan** (xem mục Training: Train /
+> Internal-Val / Test). Sau khi sửa để `val/` chỉ đóng vai trò test set độc lập (đánh giá
+> đúng 1 lần, không ảnh hưởng lúc train), cần train lại để có **Test Accuracy** đáng tin
+> cậy - bảng trên sẽ cập nhật sau khi chạy xong.
 >
 > Cả 4 model dùng đúng 1 recipe train công bằng (AdamW + CosineAnnealingLR/OneCycleLR,
 > full fine-tune từ epoch 1 - không có model nào được ưu ái cơ chế train riêng như
-> MobileNetV3 2-phase trước đây). Trước khi áp dụng protocol thống nhất (mỗi model tự
-> resolution/hyperparameter riêng khớp notebook gốc), thứ tự khác: DeiT 99.25% >
-> BeanLeafVGG (kiến trúc cũ) 98.50% > EfficientNet 96.24% > MobileNetV3 94.74%.
+> MobileNetV3 2-phase trước đây).
 
 #### Đánh giá độ ổn định qua 5-Fold Cross-Validation (kiến trúc BeanLeafVGG cũ):
 
