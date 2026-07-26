@@ -34,6 +34,14 @@ WEIGHT_DECAY = DEFAULT_CONFIG.weight_decay
 PATIENCE = DEFAULT_CONFIG.patience
 LABEL_SMOOTHING = DEFAULT_CONFIG.label_smoothing
 GRAD_CLIP = 1.0  # Riêng của BeanLeafLite (OneCycleLR + grad clip) - không thuộc config chung
+# OneCycleLR cần biết TRƯỚC tổng số epoch để tính lịch anneal LR về gần 0 ở epoch cuối.
+# Nhưng NUM_EPOCHS=100 chỉ là trần tối đa - EarlyStopping (patience=7) thực tế luôn dừng
+# sớm hơn nhiều (quan sát thực nghiệm: dừng quanh epoch 40-60). Nếu cấu hình OneCycleLR
+# cho 100 epoch, lịch LR bị "cắt ngang" giữa chừng lúc early-stop - LR vẫn còn cao, chưa
+# kịp anneal thấp - khiến checkpoint cuối cùng hội tụ kém hơn hẳn so với các model dùng
+# CosineAnnealingLR (ít nhạy với việc dừng sớm hơn). Đặt riêng một mốc epoch thực tế hơn
+# cho OneCycleLR để nó có cơ hội hoàn thành chu kỳ anneal trước khi patience kích hoạt.
+ONECYCLE_TARGET_EPOCHS = 50
 
 # Device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -191,7 +199,12 @@ def train_one_epoch(model, loader, criterion, optimizer, scheduler, device, scal
             optimizer.step()
 
         if scheduler is not None:
-            scheduler.step()
+            try:
+                scheduler.step()
+            except ValueError:
+                # OneCycleLR đã hết total_steps (huấn luyện chạy dài hơn ONECYCLE_TARGET_EPOCHS
+                # dự kiến) - giữ nguyên LR đã anneal thấp ở bước cuối, không cần step tiếp.
+                pass
 
         running_loss += loss.item() * inputs.size(0)
         _, preds = torch.max(outputs, 1)
@@ -237,10 +250,11 @@ def get_optimizer_scheduler(model, train_loader, num_epochs=NUM_EPOCHS):
     """Create optimizer and scheduler"""
     criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING)
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    onecycle_epochs = min(num_epochs, ONECYCLE_TARGET_EPOCHS)
     scheduler = OneCycleLR(
-        optimizer, 
+        optimizer,
         max_lr=2e-3,
-        epochs=num_epochs,
+        epochs=onecycle_epochs,
         steps_per_epoch=len(train_loader),
         pct_start=0.3  # Warm-up 30%
     )
