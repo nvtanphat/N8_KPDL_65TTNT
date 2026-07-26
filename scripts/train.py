@@ -3,10 +3,12 @@ Bean Leaf Classification - Main Training Script
 Hỗ trợ 4 model PyTorch: VGG (custom), EfficientNet-B3, MobileNetV3, DeiT
 
 Hyperparameter dùng chung (img_size, batch_size, epochs, lr, weight_decay, patience,
-label_smoothing) đọc từ bean_leaf.config.DEFAULT_CONFIG (Single Source of Truth) - mỗi
-model module chỉ còn giữ riêng cơ chế đặc thù kiến trúc (OneCycleLR max_lr của VGG,
-2-phase LR của MobileNetV3, warmup/EMA của DeiT). Script này điều phối: augmentation &
-dataloader dùng chung, vòng train/early-stopping dùng chung.
+label_smoothing) đọc từ bean_leaf.config.DEFAULT_CONFIG (Single Source of Truth). Cả 4
+model dùng chung 1 vòng lặp huấn luyện duy nhất (for epoch ... + EarlyStopping); chỉ
+VGG (OneCycleLR step theo batch + gradient clipping) và DeiT (warmup/EMA) cần nhánh
+riêng cho cơ chế đặc thù kiến trúc không có tương đương ở model khác. EfficientNet-B3
+và MobileNetV3 dùng y hệt 1 recipe (AdamW + CosineAnnealingLR, full fine-tune từ đầu)
+nên đi chung 1 nhánh - đảm bảo so sánh công bằng giữa các kiến trúc.
 """
 
 import argparse
@@ -62,12 +64,6 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
     print(f"\n[TRAIN] Training {model_name}...")
     print("=" * 60)
 
-    # MobileNetV3: transfer learning 2 phase tự quản lý vòng lặp + early stopping riêng
-    if model_name == 'mobilenet':
-        model = mobilenetv3.train_mobilenetv3(model, train_loader, val_loader, model_path, device)
-        print(f"\n[SAVED] Model saved to {model_path}")
-        return model
-
     epochs = DEFAULT_CONFIG.num_epochs
     # AMP dùng chung: cần thiết vì img_size=384 áp cho cả 4 model có thể vượt VRAM GPU
     # (thực tế đã CUDA OOM với EfficientNet-B3 384px/batch32 khi train thuần fp32).
@@ -80,9 +76,10 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
         criterion, optimizer, scheduler = vgg_custom.get_optimizer_scheduler(model, train_loader, epochs)
         train_fn, val_fn = vgg_custom.train_one_epoch, vgg_custom.validate
         model_ema = None
-    else:  # efficientnet
-        criterion, optimizer, scheduler = efficientnet.get_optimizer_scheduler(model, epochs)
-        train_fn, val_fn = efficientnet.train_one_epoch, efficientnet.validate
+    else:  # efficientnet & mobilenet: cùng 1 recipe (AdamW + CosineAnnealingLR, full fine-tune)
+        module = MODEL_REGISTRY[model_name]['module']
+        criterion, optimizer, scheduler = module.get_optimizer_scheduler(model, epochs)
+        train_fn, val_fn = module.train_one_epoch, module.validate
         model_ema = None
 
     early_stopping = EarlyStopping(patience=DEFAULT_CONFIG.patience, verbose=True, path=model_path)
@@ -106,7 +103,7 @@ def train_model(model_name, train_loader, val_loader, model, output_dir):
             # OneCycleLR đã được step theo từng batch bên trong train_fn, không step lại ở đây
             train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, scheduler, device, scaler)
             val_loss, val_acc, _, _ = val_fn(model, val_loader, criterion, device)
-        else:  # efficientnet: CosineAnnealingLR, step 1 lần/epoch, không phụ thuộc val_loss
+        else:  # efficientnet & mobilenet: CosineAnnealingLR, step 1 lần/epoch, không phụ thuộc val_loss
             train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, device, scaler)
             val_loss, val_acc = val_fn(model, val_loader, criterion, device)
             scheduler.step()

@@ -151,10 +151,13 @@ dụng ngay cho cả 4 model, thay vì khai báo lặp lại rải rác từng f
 | `patience` | 7 | Early stopping vừa đủ |
 | `label_smoothing` | 0.05 | Làm mềm phân phối nhãn giữa các lớp bệnh tương đồng |
 
-Cơ chế đặc thù từng kiến trúc (OneCycleLR `max_lr` của VGG, 2 learning rate của MobileNetV3
-2-phase, warmup/EMA của DeiT) vẫn giữ riêng trong từng file model vì không có tương đương ở
-cấu hình chung. Xem `tests/test_models.py` để verify forward pass đúng shape sau khi đổi
-`DEFAULT_CONFIG.img_size`.
+EfficientNet-B3 và MobileNetV3 dùng chung 1 recipe train y hệt nhau (AdamW +
+CosineAnnealingLR, full fine-tune từ epoch 1 - không đóng băng backbone). Chỉ VGG
+(OneCycleLR `max_lr` step theo batch + gradient clipping) và DeiT (warmup + EMA) còn giữ
+cơ chế riêng vì không có tương đương ở config chung. MobileNetV3 trước đây dùng transfer
+learning 2-phase (freeze rồi unfreeze dần) - đã bỏ vì đó là 1 lợi thế recipe riêng mà 3
+model kia không có, khiến so sánh không công bằng. Xem `tests/test_models.py` để verify
+forward pass đúng shape sau khi đổi `DEFAULT_CONFIG.img_size`.
 
 > 💡 EfficientNet-B3 ở 384px/batch 32 vượt VRAM GPU T4 nếu train thuần fp32 (đã gặp CUDA OOM
 > thực tế) - `scripts/train.py` dùng Automatic Mixed Precision (`bean_leaf.training.amp`) cho

@@ -1,8 +1,11 @@
 """
 MobileNetV3Large Model for Bean Leaf Classification
-PyTorch Implementation - transfer learning 2 giai đoạn (thay cho bản TensorFlow/Keras cũ):
-  Phase 1: đóng băng backbone, chỉ train classification head.
-  Phase 2: mở khóa phần lớn backbone (trừ BatchNorm) để fine-tune với LR thấp hơn.
+PyTorch Implementation - End-to-End Fine-Tuning chuẩn, y hệt EfficientNet-B3
+(AdamW + CosineAnnealingLR, full fine-tune từ epoch 1, không đóng băng backbone).
+
+Trước đây dùng transfer learning 2-phase (freeze rồi unfreeze dần) - bỏ đi vì đó là
+1 recipe train riêng biệt cho MobileNetV3 mà 3 model kia không có, khiến so sánh
+giữa các kiến trúc trong Controlled Benchmark Protocol không thực sự công bằng.
 """
 
 import torch
@@ -11,24 +14,18 @@ import torch.optim as optim
 from torchvision import models
 
 from bean_leaf.config import DEFAULT_CONFIG
-from bean_leaf.training.amp import autocast_context, get_scaler
-from bean_leaf.training.early_stopping import EarlyStopping
+from bean_leaf.training.amp import autocast_context
 
 # ===================== CONFIGURATION =====================
 # Đọc từ config.py trung tâm (Single Source of Truth) - đổi DEFAULT_CONFIG áp dụng ngay ở đây.
 NUM_CLASSES = DEFAULT_CONFIG.num_classes
 IMG_SIZE = DEFAULT_CONFIG.img_size
 BATCH_SIZE = DEFAULT_CONFIG.batch_size
-# 2 phase transfer learning: tổng epoch = DEFAULT_CONFIG.num_epochs, chia 1/3 - 2/3
-PHASE1_EPOCHS = DEFAULT_CONFIG.num_epochs // 3
-PHASE2_EPOCHS = DEFAULT_CONFIG.num_epochs - PHASE1_EPOCHS
-# Riêng của cơ chế 2-phase (không có tương đương "1 learning_rate" trong config chung)
-PHASE1_LR = 5e-4
-PHASE2_LR = 1e-5
+NUM_EPOCHS = DEFAULT_CONFIG.num_epochs
+LEARNING_RATE = DEFAULT_CONFIG.learning_rate
 WEIGHT_DECAY = DEFAULT_CONFIG.weight_decay
-LABEL_SMOOTHING = DEFAULT_CONFIG.label_smoothing
 PATIENCE = DEFAULT_CONFIG.patience
-FREEZE_RATIO = 0.7  # Phase 2: giữ đóng băng 70% block đầu của backbone, chỉ fine-tune phần cuối
+LABEL_SMOOTHING = DEFAULT_CONFIG.label_smoothing
 
 # Device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -39,6 +36,9 @@ def create_mobilenetv3_model(num_classes=NUM_CLASSES, pretrained=True):
     """MobileNetV3Large pre-trained ImageNet + custom head (GAP -> Dense(256) -> BN -> SiLU -> Dropout -> Dense)"""
     weights = models.MobileNet_V3_Large_Weights.DEFAULT if pretrained else None
     model = models.mobilenet_v3_large(weights=weights)
+
+    # Full fine-tune (không đóng băng backbone) - torchvision pretrained model
+    # đã có requires_grad=True mặc định cho mọi param.
 
     in_features = model.classifier[0].in_features  # 960
     model.classifier = nn.Sequential(
@@ -51,49 +51,10 @@ def create_mobilenetv3_model(num_classes=NUM_CLASSES, pretrained=True):
     return model
 
 
-def freeze_backbone(model, freeze=True):
-    """Phase 1: đóng băng toàn bộ backbone (model.features), chỉ train head"""
-    for param in model.features.parameters():
-        param.requires_grad = not freeze
-
-
-def unfreeze_backbone_for_finetune(model, freeze_ratio=FREEZE_RATIO):
-    """
-    Phase 2: mở khóa phần cuối backbone để fine-tune, giữ đóng băng các block đầu
-    (feature tổng quát, ít cần học lại) và LUÔN đóng băng BatchNorm2d (giữ running
-    stats đã học từ ImageNet, tránh optimizer phá vỡ khi batch nhỏ).
-    """
-    blocks = list(model.features.children())
-    freeze_until = int(len(blocks) * freeze_ratio)
-
-    for i, block in enumerate(blocks):
-        requires_grad = i >= freeze_until
-        for param in block.parameters():
-            param.requires_grad = requires_grad
-
-    for module in model.features.modules():
-        if isinstance(module, nn.BatchNorm2d):
-            for param in module.parameters():
-                param.requires_grad = False
-
-
-def _freeze_bn_eval(model):
-    """
-    model.train() ở đầu mỗi epoch sẽ đưa TẤT CẢ submodule (kể cả BatchNorm2d đã đóng
-    băng) về train mode, khiến running_mean/var bị cập nhật lại dù đã set
-    requires_grad=False. Phải gọi lại hàm này sau mỗi model.train() để giữ các BN đã
-    đóng băng ở eval mode (không cập nhật running stats, không học gamma/beta).
-    """
-    for module in model.modules():
-        if isinstance(module, nn.BatchNorm2d) and not any(p.requires_grad for p in module.parameters()):
-            module.eval()
-
-
 # ===================== TRAINING FUNCTIONS =====================
 def train_one_epoch(model, loader, criterion, optimizer, device, scaler=None):
     """Train model for one epoch (AMP nếu có scaler - xem bean_leaf.training.amp)"""
     model.train()
-    _freeze_bn_eval(model)
     running_loss = 0.0
     correct = 0
     total = 0
@@ -145,46 +106,9 @@ def validate(model, loader, criterion, device):
     return running_loss / total, correct / total
 
 
-def _run_phase(model, train_loader, val_loader, device, epochs, lr, early_stopping, phase_name):
+def get_optimizer_scheduler(model, num_epochs=NUM_EPOCHS):
+    """Create optimizer and scheduler - y hệt efficientnet.get_optimizer_scheduler"""
     criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING)
-    optimizer = optim.AdamW(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr=lr, weight_decay=WEIGHT_DECAY,
-    )
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, min_lr=1e-7)
-    scaler = get_scaler(device)
-
-    for epoch in range(epochs):
-        print(f"\n[{phase_name}] Epoch {epoch + 1}/{epochs}")
-        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device, scaler)
-        val_loss, val_acc = validate(model, val_loader, criterion, device)
-        print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
-        print(f"Val Loss:   {val_loss:.4f} | Val Acc:   {val_acc:.4f}")
-
-        scheduler.step(val_loss)
-        early_stopping(val_loss, model)
-        if early_stopping.early_stop:
-            print(f"[{phase_name}] Early stopping triggered!")
-            break
-
-
-def train_mobilenetv3(model, train_loader, val_loader, model_path, device):
-    """
-    Chạy đủ 2 phase transfer learning, lưu checkpoint tốt nhất vào model_path.
-    Trả về model đã load lại best weights.
-    """
-    early_stopping = EarlyStopping(patience=PATIENCE, verbose=True, path=model_path)
-
-    print("\n[MobileNetV3] PHASE 1: Training classification head (backbone frozen)")
-    freeze_backbone(model, freeze=True)
-    _run_phase(model, train_loader, val_loader, device, PHASE1_EPOCHS, PHASE1_LR, early_stopping, "Phase 1")
-
-    if not early_stopping.early_stop:
-        print("\n[MobileNetV3] PHASE 2: Fine-tuning (mở khóa phần cuối backbone, BN vẫn đóng băng)")
-        unfreeze_backbone_for_finetune(model, freeze_ratio=FREEZE_RATIO)
-        early_stopping.counter = 0  # reset để phase 2 có đủ patience riêng
-        early_stopping.early_stop = False
-        _run_phase(model, train_loader, val_loader, device, PHASE2_EPOCHS, PHASE2_LR, early_stopping, "Phase 2")
-
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    return model
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
+    return criterion, optimizer, scheduler

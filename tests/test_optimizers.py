@@ -3,7 +3,7 @@ DeiT từng thiếu scheduler và bị crash khi train)."""
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
-from bean_leaf.models import vgg_custom, efficientnet, deit
+from bean_leaf.models import vgg_custom, efficientnet, mobilenetv3, deit
 
 NUM_CLASSES = 3
 
@@ -24,6 +24,12 @@ def test_vgg_optimizer_scheduler():
 def test_efficientnet_optimizer_scheduler():
     model = efficientnet.create_efficientnet_model(NUM_CLASSES, pretrained=False)
     criterion, optimizer, scheduler = efficientnet.get_optimizer_scheduler(model, num_epochs=2)
+    assert criterion is not None and optimizer is not None and scheduler is not None
+
+
+def test_mobilenetv3_optimizer_scheduler():
+    model = mobilenetv3.create_mobilenetv3_model(NUM_CLASSES, pretrained=False)
+    criterion, optimizer, scheduler = mobilenetv3.get_optimizer_scheduler(model, num_epochs=2)
     assert criterion is not None and optimizer is not None and scheduler is not None
 
 
