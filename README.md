@@ -121,6 +121,8 @@ pip install -e .
 
 ## 💻 Triển khai & Sử dụng Web App
 
+![Giao diện Web App Streamlit Chẩn đoán & Grad-CAM](docs/assets/web_demo.png)
+
 ### 1. Chạy Trực tiếp với Streamlit
 ```bash
 streamlit run app/streamlit_app.py
