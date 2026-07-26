@@ -15,7 +15,7 @@ def _assert_forward_shape(model, img_size):
 
 
 def test_vgg_custom_forward():
-    model = vgg_custom.create_vgg_model(NUM_CLASSES)
+    model = vgg_custom.create_lite_model(NUM_CLASSES)
     _assert_forward_shape(model, img_size=vgg_custom.IMG_SIZE)
 
 

@@ -34,7 +34,7 @@ device = vgg_custom.device
 
 # Mỗi model: module chứa config + factory, và interpolation phù hợp với kiến trúc
 MODEL_REGISTRY = {
-    'vgg': {'module': vgg_custom, 'create': vgg_custom.create_vgg_model, 'interpolation': InterpolationMode.BILINEAR},
+    'vgg': {'module': vgg_custom, 'create': vgg_custom.create_lite_model, 'interpolation': InterpolationMode.BILINEAR},
     'efficientnet': {'module': efficientnet, 'create': efficientnet.create_efficientnet_model, 'interpolation': InterpolationMode.BILINEAR},
     'mobilenet': {'module': mobilenetv3, 'create': mobilenetv3.create_mobilenetv3_model, 'interpolation': InterpolationMode.BILINEAR},
     'deit': {'module': deit, 'create': deit.create_deit_model, 'interpolation': InterpolationMode.BICUBIC},

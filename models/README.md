@@ -10,7 +10,7 @@ train xong, copy/đổi tên file theo bảng dưới đây:
 
 | Model | Output của `scripts/train.py` | Copy vào `models/` với tên |
 |---|---|---|
-| VGG custom | `outputs/vgg/best_vgg_model.pth` | `model_cratch_hoangloc.pth` |
+| BeanLeafLite (custom CNN) | `outputs/vgg/best_vgg_model.pth` | `model_cratch_hoangloc.pth` |
 | EfficientNet-B3 | `outputs/efficientnet/best_efficientnet_model.pth` | `best_efficientnet_model.pth` (giữ nguyên tên) |
 | MobileNetV3 | `outputs/mobilenet/best_mobilenet_model.pth` | `best_mobilenetv3.pth` |
 | DeiT | `outputs/deit/best_deit_model.pth` | `model_deit_tanphat.pth` |
@@ -22,3 +22,8 @@ Tên file đích khớp với `app/config.py::MODELS[...]['file']` - đổi 1 tr
 > thay cho bản TensorFlow/Keras cũ. Checkpoint `.keras` cũ **không tương thích** — cần train lại
 > bằng `scripts/train.py --model mobilenet` để có `best_mobilenetv3.pth`. Cho đến khi đó, mục
 > MobileNetV3 trên web app sẽ báo "không tìm thấy model".
+>
+> **Lưu ý:** kiến trúc custom CNN đã đổi từ BeanLeafVGG (conv3x3 thường) sang BeanLeafLite
+> (Depthwise-Separable + Residual + SE, ~1M tham số). Checkpoint `model_cratch_hoangloc.pth`
+> cũ (nếu có, train trên kiến trúc BeanLeafVGG) **không tương thích** — cần train lại bằng
+> `scripts/train.py --model vgg` để có checkpoint đúng kiến trúc mới.

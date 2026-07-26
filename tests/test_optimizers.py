@@ -15,7 +15,7 @@ def _dummy_loader(batch_size=2, n_batches=3):
 
 
 def test_vgg_optimizer_scheduler():
-    model = vgg_custom.create_vgg_model(NUM_CLASSES)
+    model = vgg_custom.create_lite_model(NUM_CLASSES)
     loader = _dummy_loader()
     criterion, optimizer, scheduler = vgg_custom.get_optimizer_scheduler(model, loader, num_epochs=2)
     assert criterion is not None and optimizer is not None and scheduler is not None

@@ -12,7 +12,7 @@ Một hệ thống **Deep Learning** toàn diện cho việc tự động chẩn
 ## 📌 Tính năng Nổi bật
 
 - **Mô hình Phân loại & Phân vùng Đa dạng (Multi-Architecture System):**
-  - **Custom CNN (BeanLeafVGG):** Kiến trúc CNN nhẹ tự thiết kế làm baseline.
+  - **Custom CNN (BeanLeafLite):** Depthwise-Separable + Residual + SE Attention tự thiết kế, ~1M tham số - nhẹ hơn cả MobileNetV3.
   - **EfficientNet-B3:** Tối ưu hóa sự cân bằng giữa số lượng tham số và độ chính xác.
   - **MobileNetV3-Large:** Kiến trúc siêu nhẹ, tối ưu cho thời gian thực và thiết bị di động (Edge devices).
   - **DeiT-Small (Vision Transformer):** Khai thác cơ chế Self-Attention để hiểu ngữ cảnh toàn cục của ảnh.
@@ -205,22 +205,30 @@ model dùng chung 1 resolution/hyperparameter để so sánh công bằng:
 
 | Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Ưu thế |
 |---|:---:|:---:|---|
-| **MobileNetV3-Large** | **100%** | ~3.2M | Nhẹ nhất nhưng đạt cao nhất ở resolution 384px, phù hợp thiết bị di động / Edge |
+| **MobileNetV3-Large** | **100%**¹ | ~3.2M | Đạt cao nhất ở resolution 384px, phù hợp thiết bị di động / Edge |
 | **EfficientNet-B3** | **98.50%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
-| **BeanLeafVGG** (Custom CNN) | **96.99%** | ~4.7M | Kiến trúc CNN tùy chỉnh, đạt độ chính xác cao dù train từ đầu |
 | **DeiT-Small** (ViT) | **96.24%** | ~21.8M | LR chung (3e-4) cao hơn LR gốc tối ưu cho ViT (1e-4) nên giảm nhẹ so với tune riêng |
+| **BeanLeafLite** (Custom CNN) | *chưa đo* | ~1M | Depthwise-Separable + Residual + SE Attention - nhẹ hơn MobileNetV3, chờ train lại |
 
+> ¹ MobileNetV3 100% đo trên val set chỉ 133 ảnh - lệch 1 ảnh đã đổi ~0.75%, nên khoảng
+> cách giữa các model ở bảng trên nằm trong biên độ nhiễu thống kê, không nên coi là
+> kết luận chắc chắn "model X tốt hơn model Y".
+>
 > Trước khi áp dụng protocol thống nhất (mỗi model tự resolution/hyperparameter riêng khớp
-> notebook gốc), thứ tự khác: DeiT 99.25% > VGG 98.50% > EfficientNet 96.24% > MobileNetV3
-> 94.74%. Protocol thống nhất ưu tiên so sánh công bằng hơn là điểm cao nhất tuyệt đối cho
-> từng model.
+> notebook gốc), thứ tự khác: DeiT 99.25% > BeanLeafVGG (kiến trúc cũ) 98.50% > EfficientNet
+> 96.24% > MobileNetV3 94.74%. Protocol thống nhất ưu tiên so sánh công bằng hơn là điểm cao
+> nhất tuyệt đối cho từng model.
+>
+> **BeanLeafLite** thay thế hoàn toàn **BeanLeafVGG** cũ (5 block conv3x3 thường, ~4.7M
+> tham số) bằng kiến trúc Depthwise-Separable + Residual + SE - checkpoint cũ (nếu có)
+> **không tương thích**, cần train lại (xem [models/README.md](models/README.md)).
 
-#### Đánh giá độ ổn định qua 5-Fold Cross-Validation:
+#### Đánh giá độ ổn định qua 5-Fold Cross-Validation (kiến trúc BeanLeafVGG cũ):
 
 | Mô hình | Độ chính xác trung bình (5-Fold CV) |
 |---|:---:|
 | **DeiT-Small** | **98.29% ± 0.47%** |
-| **BeanLeafVGG** | **97.10%** |
+| **BeanLeafVGG** (kiến trúc cũ) | **97.10%** |
 | **MobileNetV3-Large** | **96.57% ± 0.80%** |
 
 ---

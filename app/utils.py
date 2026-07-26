@@ -40,8 +40,8 @@ def _get_ultralytics():
 # thay vì khai báo lại ở đây - tránh lệch kiến trúc giữa train và inference.
 
 def _create_vgg_model(num_classes=3):
-    from bean_leaf.models.vgg_custom import create_vgg_model
-    return create_vgg_model(num_classes=num_classes)
+    from bean_leaf.models.vgg_custom import create_lite_model
+    return create_lite_model(num_classes=num_classes)
 
 
 def _create_deit_model(num_classes=3):
@@ -66,7 +66,7 @@ def load_model(model_type):
     Load model dựa trên loại model
     
     Args:
-        model_type: Tên model ('MobileNetV3', 'CNN_VGG_Custom', 'EfficientNet_B3', 'DeiT_Transformer', 'YOLO_Segmentation')
+        model_type: Tên model ('MobileNetV3', 'BeanLeafLite_Custom', 'EfficientNet_B3', 'DeiT_Transformer', 'YOLO_Segmentation')
     
     Returns:
         Model đã load weights
