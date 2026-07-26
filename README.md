@@ -15,7 +15,7 @@ Một hệ thống **Deep Learning** toàn diện cho việc tự động chẩn
   - **Custom CNN (BeanLeafVGG):** Kiến trúc CNN nhẹ tự thiết kế làm baseline.
   - **EfficientNet-B3:** Tối ưu hóa sự cân bằng giữa số lượng tham số và độ chính xác.
   - **MobileNetV3-Large:** Kiến trúc siêu nhẹ, tối ưu cho thời gian thực và thiết bị di động (Edge devices).
-  - **DeiT-Small (Vision Transformer):** Khai thác cơ chế Self-Attention cho độ chính xác SOTA (**99.25%**).
+  - **DeiT-Small (Vision Transformer):** Khai thác cơ chế Self-Attention để hiểu ngữ cảnh toàn cục của ảnh.
   - **YOLOv8-seg (Instance Segmentation):** Phát hiện chính xác vị trí và tạo mask phân vùng ổ bệnh realtime.
 
 - **Thiết kế Modular dạng Python Package (`bean_leaf`):**
@@ -145,7 +145,7 @@ dụng ngay cho cả 4 model, thay vì khai báo lặp lại rải rác từng f
 |---|:---:|---|
 | `img_size` | **384** | Giữ chi tiết vết bệnh nhỏ (đốm góc lá, gỉ sắt) sắc nét hơn; khớp sẵn với DeiT3 (`patch16_384`) |
 | `batch_size` | 32 | Đảm bảo ổn định gradient |
-| `num_epochs` | 30 | Đủ để fine-tune hội tụ |
+| `num_epochs` | 100 (trần) | EarlyStopping (`patience`) tự quyết định điểm dừng thực tế |
 | `learning_rate` | 3e-4 | Chuẩn cho Transfer Learning + AdamW |
 | `weight_decay` | 1e-2 | Giảm overfitting |
 | `patience` | 7 | Early stopping vừa đủ |
@@ -156,11 +156,12 @@ Cơ chế đặc thù từng kiến trúc (OneCycleLR `max_lr` của VGG, 2 lear
 cấu hình chung. Xem `tests/test_models.py` để verify forward pass đúng shape sau khi đổi
 `DEFAULT_CONFIG.img_size`.
 
-> ⚠️ Bảng benchmark ở mục [Kết quả Thực nghiệm](#-kết-quả-thực-nghiệm--đánh-giá-benchmark--evaluation)
-> bên dưới được đo **trước** khi áp dụng Controlled Benchmark Protocol này (mỗi model dùng
-> resolution/hyperparameter riêng khớp notebook gốc: VGG 400px/80 epoch, EfficientNet 350px,
-> MobileNetV3 224px/2-phase, DeiT 384px/20 epoch). Cần train lại để có số liệu mới dưới
-> protocol 384px thống nhất.
+> 💡 EfficientNet-B3 ở 384px/batch 32 vượt VRAM GPU T4 nếu train thuần fp32 (đã gặp CUDA OOM
+> thực tế) - `scripts/train.py` dùng Automatic Mixed Precision (`bean_leaf.training.amp`) cho
+> cả 4 model để khắc phục, không cần giảm batch/resolution.
+
+Bảng benchmark ở mục [Kết quả Thực nghiệm](#-kết-quả-thực-nghiệm--đánh-giá-benchmark--evaluation)
+bên dưới đã được đo lại dưới protocol 384px thống nhất này.
 
 ### 1. Huấn luyện Mô hình Phân loại (Classification)
 
@@ -196,12 +197,20 @@ python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50 --model_
 
 Kết quả đánh giá độc lập trên tập kiểm thử (Test Set):
 
+Đo dưới **Controlled Benchmark Protocol** thống nhất (384px, xem mục Training) - tất cả 4
+model dùng chung 1 resolution/hyperparameter để so sánh công bằng:
+
 | Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Ưu thế |
 |---|:---:|:---:|---|
-| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Đạt kết quả SOTA nhờ cơ chế Self-Attention khai thác ngữ cảnh toàn cục |
-| **BeanLeafVGG** (Custom CNN) | **98.50%** | ~4.7M | Kiến trúc CNN tùy chỉnh tối ưu, đạt độ chính xác cao dù train từ đầu |
-| **EfficientNet-B3** | **96.24%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
-| **MobileNetV3-Large** | **94.74%** | ~3.2M | Kiến trúc siêu nhẹ, đáp ứng tức thì cho thiết bị di động / Edge |
+| **MobileNetV3-Large** | **100%** | ~3.2M | Nhẹ nhất nhưng đạt cao nhất ở resolution 384px, phù hợp thiết bị di động / Edge |
+| **EfficientNet-B3** | **98.50%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
+| **BeanLeafVGG** (Custom CNN) | **96.99%** | ~4.7M | Kiến trúc CNN tùy chỉnh, đạt độ chính xác cao dù train từ đầu |
+| **DeiT-Small** (ViT) | **96.24%** | ~21.8M | LR chung (3e-4) cao hơn LR gốc tối ưu cho ViT (1e-4) nên giảm nhẹ so với tune riêng |
+
+> Trước khi áp dụng protocol thống nhất (mỗi model tự resolution/hyperparameter riêng khớp
+> notebook gốc), thứ tự khác: DeiT 99.25% > VGG 98.50% > EfficientNet 96.24% > MobileNetV3
+> 94.74%. Protocol thống nhất ưu tiên so sánh công bằng hơn là điểm cao nhất tuyệt đối cho
+> từng model.
 
 #### Đánh giá độ ổn định qua 5-Fold Cross-Validation:
 
