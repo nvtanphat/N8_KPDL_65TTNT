@@ -28,13 +28,13 @@ Kaggle) nếu muốn thử size khác:
 kaggle kernels push -p ./kaggle_job_yolo
 
 # 2. Theo dõi trạng thái
-kaggle kernels status nguynvntnpht/bean-leaf-yolo-training
+kaggle kernels status <your-kaggle-username>/bean-leaf-yolo-training
 
 # 3. Khi Complete: tải checkpoint (best.pt) + log về máy local
-kaggle kernels output nguynvntnpht/bean-leaf-yolo-training -p ./outputs_yolo
+kaggle kernels output <your-kaggle-username>/bean-leaf-yolo-training -p ./outputs_yolo
 ```
 
 Checkpoint tốt nhất nằm ở `outputs_yolo/bean-leaf-disease/runs/segment/train/weights/best.pt`
 (đường dẫn do Ultralytics tự tạo, `train_yolo.py` in ra đường dẫn chính xác ở cuối log) - copy
-file này vào `models/model_segemnt_yolo.pt` để web app dùng được (xem
+file này vào `models/best_yolov8_segmentation.pt` để web app dùng được (xem
 [../models/README.md](../models/README.md)).

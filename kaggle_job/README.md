@@ -24,10 +24,10 @@ Chạy `scripts/train.py --model all` trên GPU miễn phí của Kaggle Kernels
 kaggle kernels push -p ./kaggle_job
 
 # 2. Kiểm tra trạng thái (Running / Complete / Error)
-kaggle kernels status nguynvntnpht/bean-leaf-training-script
+kaggle kernels status <your-kaggle-username>/bean-leaf-training-script
 
 # 3. Khi Complete: tải checkpoint + log về máy local
-kaggle kernels output nguynvntnpht/bean-leaf-training-script -p ./outputs
+kaggle kernels output <your-kaggle-username>/bean-leaf-training-script -p ./outputs
 ```
 
 `run_job.py` tự clone repo từ GitHub (nhánh `main`) về máy ảo Kaggle, cài dependencies, rồi train

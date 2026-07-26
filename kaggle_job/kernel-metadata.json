@@ -1,5 +1,5 @@
 {
-  "id": "nguynvntnpht/bean-leaf-training-script",
+  "id": "<your-kaggle-username>/bean-leaf-training-script",
   "title": "Bean Leaf Training Script",
   "code_file": "run_job.py",
   "language": "python",
