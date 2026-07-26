@@ -6,6 +6,12 @@ ImageFolder), YOLO cần 1 file data.yaml (định dạng segmentation, export t
 Roboflow - xem README phần Dataset) nên có entrypoint và cách gọi dữ liệu riêng.
 """
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
 import argparse
 import os
 

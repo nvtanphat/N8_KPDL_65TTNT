@@ -18,6 +18,12 @@ early-stop vừa để báo cáo kết quả sẽ cho con số thiên vị lạc
 checkpoint tốt nhất trên chính tập đó).
 """
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
 import argparse
 import os
 
