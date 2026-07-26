@@ -59,9 +59,8 @@ data_dir = find_dataset_dir()
 print(f"Dùng --data_dir {data_dir}", flush=True)
 run(f"ls -la {data_dir}/train")
 
-# TRAIN_MODEL: đổi thành "all" để chạy lại đủ 4 model (mặc định benchmark đầy đủ).
-# Tạm để "vgg" - chỉ retrain riêng BeanLeafLite sau khi sửa OneCycleLR (xem
-# ONECYCLE_TARGET_EPOCHS trong vgg_custom.py) cho nhanh, không cần chạy lại 3 model kia.
-TRAIN_MODEL = "vgg"
+# TRAIN_MODEL: đổi thành 1 trong "vgg"/"efficientnet"/"mobilenet"/"deit" để chỉ train
+# riêng model đó (retrain nhanh). Mặc định "all" = benchmark đầy đủ 4 model.
+TRAIN_MODEL = "all"
 print(f"[4/4] Bắt đầu train ({TRAIN_MODEL}) bằng GPU trên Kaggle...", flush=True)
 run(f"python -u scripts/train.py --data_dir {data_dir} --model {TRAIN_MODEL}")
