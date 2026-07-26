@@ -211,16 +211,17 @@ model dùng chung 1 resolution/hyperparameter để so sánh công bằng:
 
 | Mô hình | Test Accuracy | Số tham số | Đặc điểm & Ưu thế |
 |---|:---:|:---:|---|
-| MobileNetV3-Large | *chờ đo lại* | ~3.2M | Phù hợp thiết bị di động / Edge |
-| EfficientNet-B3 | *chờ đo lại* | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
-| DeiT-Small (ViT) | *chờ đo lại* | ~21.8M | Self-Attention khai thác ngữ cảnh toàn cục |
-| BeanLeafLite (Custom CNN) | *chờ đo lại* | **~0.94M** | Depthwise-Separable + Residual + SE Attention - nhẹ hơn cả MobileNetV3 |
+| **MobileNetV3-Large** | **99.25%** | ~3.2M | Phù hợp thiết bị di động / Edge |
+| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Self-Attention khai thác ngữ cảnh toàn cục |
+| **EfficientNet-B3** | **97.74%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
+| **BeanLeafLite** (Custom CNN) | **93.98%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention - nhẹ hơn cả MobileNetV3 |
 
-> Các con số 100%/99.25%/98.50%/96.99% đo ở lần chạy trước dùng `val/` vừa để
-> early-stopping vừa để báo cáo - **bị thiên vị lạc quan** (xem mục Training: Train /
-> Internal-Val / Test). Sau khi sửa để `val/` chỉ đóng vai trò test set độc lập (đánh giá
-> đúng 1 lần, không ảnh hưởng lúc train), cần train lại để có **Test Accuracy** đáng tin
-> cậy - bảng trên sẽ cập nhật sau khi chạy xong.
+> Đo đúng 1 lần trên tập test độc lập (`val/` gốc), **không** dùng để chọn checkpoint hay
+> quyết định early-stopping trong lúc train (xem mục Training: Train / Internal-Val /
+> Test) - số liệu đáng tin cậy hơn "Val Accuracy" thiên vị đo trước đây
+> (100%/99.25%/98.50%/96.99%, dùng `val/` vừa để chọn checkpoint vừa để báo cáo).
+> BeanLeafLite giảm nhiều nhất so với Val Accuracy cũ (97%→94%) - hợp lý vì là model nhỏ
+> nhất, ít "dư" capacity để bù phần dữ liệu train bị bớt đi cho internal-val.
 >
 > Cả 4 model dùng đúng 1 recipe train công bằng (AdamW + CosineAnnealingLR/OneCycleLR,
 > full fine-tune từ epoch 1 - không có model nào được ưu ái cơ chế train riêng như
