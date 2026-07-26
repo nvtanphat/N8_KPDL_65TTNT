@@ -14,14 +14,14 @@ from timm.utils import ModelEmaV2
 
 # ===================== CONFIGURATION =====================
 NUM_CLASSES = 3
-IMG_SIZE = 384
+IMG_SIZE = 224
 BATCH_SIZE = 32
-NUM_EPOCHS = 20
+NUM_EPOCHS = 30
 LEARNING_RATE = 1e-4
-WEIGHT_DECAY = 0.05
+WEIGHT_DECAY = 1e-2
 WARMUP_EPOCHS = 2
-PATIENCE = 5
-LABEL_SMOOTHING = 0.1
+PATIENCE = 7
+LABEL_SMOOTHING = 0.0
 EMA_DECAY = 0.9998
 GRAD_CLIP = 1.0
 
@@ -96,7 +96,7 @@ def validate(model, loader, criterion, device):
 def create_deit_model(num_classes=NUM_CLASSES, pretrained=True):
     """Create DeiT model using timm"""
     model = timm.create_model(
-        'deit3_small_patch16_384.fb_in1k',
+        'deit_small_patch16_224',
         pretrained=pretrained,
         num_classes=num_classes
     )

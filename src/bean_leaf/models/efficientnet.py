@@ -10,12 +10,12 @@ from torchvision import models
 
 # ===================== CONFIGURATION =====================
 NUM_CLASSES = 3
-IMG_SIZE = 350
+IMG_SIZE = 224
 BATCH_SIZE = 32
 NUM_EPOCHS = 30
 LEARNING_RATE = 3e-4
 WEIGHT_DECAY = 1e-2
-PATIENCE = 5
+PATIENCE = 7
 
 # Device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

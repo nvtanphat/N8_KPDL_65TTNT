@@ -11,13 +11,13 @@ from sklearn.metrics import accuracy_score
 
 # ===================== CONFIGURATION =====================
 NUM_CLASSES = 3
-IMG_SIZE = 400
+IMG_SIZE = 224
 BATCH_SIZE = 32
-NUM_EPOCHS = 80
+NUM_EPOCHS = 30
 LEARNING_RATE = 3e-4
-WEIGHT_DECAY = 0.02
-PATIENCE = 15
-LABEL_SMOOTHING = 0.1
+WEIGHT_DECAY = 1e-2
+PATIENCE = 7
+LABEL_SMOOTHING = 0.0
 GRAD_CLIP = 1.0
 
 # Device
@@ -159,17 +159,11 @@ def create_vgg_model(num_classes=NUM_CLASSES):
     return model
 
 
-def get_optimizer_scheduler(model, train_loader, num_epochs=NUM_EPOCHS):
+def get_optimizer_scheduler(model, train_loader=None, num_epochs=NUM_EPOCHS):
     """Create optimizer and scheduler"""
     criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING)
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    scheduler = OneCycleLR(
-        optimizer, 
-        max_lr=2e-3,
-        epochs=num_epochs,
-        steps_per_epoch=len(train_loader),
-        pct_start=0.3  # Warm-up 30%
-    )
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
     return criterion, optimizer, scheduler
 
 

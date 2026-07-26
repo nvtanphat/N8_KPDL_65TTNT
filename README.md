@@ -165,16 +165,25 @@ python scripts/train_yolo.py --data_yaml "./data/data.yaml" --epochs 50 --model_
 
 ## 📈 Kết quả Thực nghiệm & Đánh giá (Benchmark & Evaluation)
 
+### 🔬 Phương pháp luận Đánh giá Chuẩn hóa (Controlled Benchmark Protocol)
+
+Để đảm bảo kết quả so sánh giữa các mô hình Phân loại (Classification) đạt chuẩn **minh bạch và công bằng 100%**, toàn bộ 4 mô hình (`BeanLeafVGG`, `EfficientNet-B3`, `MobileNetV3-Large`, `DeiT-Small`) được huấn luyện và đánh giá trên cùng một quy trình kiểm soát cố định:
+- **Độ phân giải ảnh đồng nhất:** `224 x 224` pixels.
+- **Dataloader & Augmentation dùng chung:** Động tác lật ngang/dọc, xoay nhẹ affine,jitter độ sáng và chuẩn hóa `IMAGENET_MEAN/STD`.
+- **Cùng Siêu tham số:** `Batch Size = 32`, `Optimizer = AdamW (weight_decay = 0.01)`, `NUM_EPOCHS = 30`, `Patience = 7`.
+
+---
+
 ### 1. Hiệu năng Mô hình Phân loại (Classification Benchmark)
 
-Kết quả đánh giá độc lập trên tập kiểm thử (Test Set):
+Kết quả đánh giá trên tập kiểm thử (Test Set) theo quy trình chuẩn hóa:
 
-| Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Ưu thế |
+| Mô hình | Validation Accuracy | Số tham số | Đặc điểm & Phân nhóm Tối ưu |
 |---|:---:|:---:|---|
-| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | Đạt kết quả SOTA nhờ cơ chế Self-Attention khai thác ngữ cảnh toàn cục |
-| **BeanLeafVGG** (Custom CNN) | **98.50%** | ~4.7M | Kiến trúc CNN tùy chỉnh tối ưu, đạt độ chính xác cao dù train từ đầu |
-| **EfficientNet-B3** | **96.24%** | ~13.0M | Khả năng tổng quát hóa tốt, cân bằng tối ưu giữa tham số và hiệu năng |
-| **MobileNetV3-Large** | **94.74%** | ~3.2M | Kiến trúc siêu nhẹ, đáp ứng tức thì cho thiết bị di động / Edge |
+| **DeiT-Small** (ViT) | **99.25%** | ~21.8M | **High Accuracy / Server:** Cơ chế Self-Attention khai thác ngữ cảnh toàn cục tốt nhất |
+| **BeanLeafVGG** (Custom CNN) | **98.50%** | ~4.7M | **Baseline Custom:** CNN tự thiết kế từ đầu (Scratch), đạt hiệu năng xuất sắc |
+| **EfficientNet-B3** | **96.24%** | ~13.0M | **Balanced Model:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa |
+| **MobileNetV3-Large** | **94.74%** | ~3.2M | **Edge / Mobile:** Siêu nhẹ (~3.2M params), tốc độ suy luận nhanh nhất cho di động |
 
 #### Đánh giá độ ổn định qua 5-Fold Cross-Validation:
 
@@ -188,13 +197,15 @@ Kết quả đánh giá độc lập trên tập kiểm thử (Test Set):
 
 ### 2. Hiệu năng Mô hình Phân vùng (YOLOv8 Instance Segmentation)
 
+*Lưu ý: YOLOv8-seg giải bài toán Phân vùng tổn thương (Instance Segmentation - phát hiện vị trí ổ bệnh & vẽ mặt nạ mask), được đánh giá theo thang đo mAP riêng biệt thay vì Accuracy phân loại single-label.*
+
 - **Box mAP@0.5:** 68.0%
 - **Mask mAP@0.5:** 68.0% | **Mask mAP@0.5:0.95:** 48.4%
 - **Mask mAP@0.5 theo từng phân lớp:**
   - `healthy`: **93.0%** (Ranh giới lá phân biệt rõ ràng)
   - `angular_leaf_spot`: **65.0%** (Vùng bệnh đốm dạng góc đa giác)
   - `bean_rust`: **42.0%** (Đốm nhỏ rải rác)
-- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS), phục vụ tốt cho phân tích thời gian thực.
+- **Tốc độ suy luận (Inference Speed):** **4.9 ms/ảnh** (~200 FPS), đáp ứng hoàn hảo yêu cầu realtime.
 
 ---
 

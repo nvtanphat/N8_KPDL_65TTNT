@@ -16,13 +16,14 @@ from bean_leaf.training.early_stopping import EarlyStopping
 NUM_CLASSES = 3
 IMG_SIZE = 224
 BATCH_SIZE = 32
+NUM_EPOCHS = 30
 PHASE1_EPOCHS = 10
 PHASE2_EPOCHS = 20
 PHASE1_LR = 5e-4
 PHASE2_LR = 1e-5
 WEIGHT_DECAY = 1e-2
-LABEL_SMOOTHING = 0.1
-PATIENCE = 5
+LABEL_SMOOTHING = 0.0
+PATIENCE = 7
 FREEZE_RATIO = 0.7  # Phase 2: giữ đóng băng 70% block đầu của backbone, chỉ fine-tune phần cuối
 
 # Device

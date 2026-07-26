@@ -11,7 +11,7 @@ IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
 
-def build_train_transform(img_size, interpolation=InterpolationMode.BILINEAR):
+def build_train_transform(img_size=224, interpolation=InterpolationMode.BILINEAR):
     return transforms.Compose([
         transforms.Resize((img_size, img_size), interpolation=interpolation),
         transforms.RandomHorizontalFlip(p=0.5),
@@ -30,7 +30,7 @@ def build_train_transform(img_size, interpolation=InterpolationMode.BILINEAR):
     ])
 
 
-def build_val_transform(img_size, interpolation=InterpolationMode.BILINEAR):
+def build_val_transform(img_size=224, interpolation=InterpolationMode.BILINEAR):
     return transforms.Compose([
         transforms.Resize((img_size, img_size), interpolation=interpolation),
         transforms.ToTensor(),
