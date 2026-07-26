@@ -16,7 +16,7 @@ except ImportError:
     from config import CLASS_NAMES, CLASS_LABELS, MODELS, DISEASE_INFO
     from utils import load_model, predict, read_image, supports_gradcam, generate_gradcam
 
-st.set_page_config(page_title="Phan Loai Benh La Dau", layout="wide")
+st.set_page_config(page_title="Phần Loại Bệnh Lá Đậu AI", layout="wide")
 
 # CSS fix gọn giao diện trong 1 khung hình web
 st.markdown("""
@@ -49,16 +49,16 @@ st.markdown("""
 
 def main():
     with st.sidebar:
-        st.header("Nguoi mau Cau hinh")
+        st.header("Cấu hình Mô hình AI")
         
-        model_type = st.selectbox("Mo hinh Chon:", list(MODELS.keys()))
+        model_type = st.selectbox("Chọn mô hình AI:", list(MODELS.keys()))
         
         cfg = MODELS[model_type]
-        st.info(f"Khung phan mem: {cfg.get('framework', 'N/A')}")
+        st.info(f"Nền tảng: {cfg.get('framework', 'N/A')}")
         
-        compare_mode = st.checkbox("So sánh các mô hình")
+        compare_mode = st.checkbox("So sánh đồng thời các mô hình")
         
-        st.write("**Lop Cac phan loai:**")
+        st.write("**Các lớp bệnh chẩn đoán:**")
         for cls in CLASS_NAMES:
             st.write(f"• {CLASS_LABELS.get(cls, cls)}")
     
@@ -71,89 +71,89 @@ def main():
 def single_view(model_type):
     model = load_cached_model(model_type)
     if model is None:
-        st.error(f"Khong tim thay model: {MODELS[model_type]['file']}")
+        st.error(f"Không tìm thấy mô hình: {MODELS[model_type]['file']}")
         return
     
     col1, col2 = st.columns([1.2, 1])
     cfg = MODELS[model_type]
     
     with col1:
-        st.subheader("Chon hinh anh de phan tich")
-        uploaded = st.file_uploader("Keo tha file vao day", type=['jpg', 'jpeg', 'png'], key="single")
+        st.subheader("Tải ảnh lá đậu để phân tích")
+        uploaded = st.file_uploader("Kéo thả ảnh vào đây (JPG, PNG)", type=['jpg', 'jpeg', 'png'], key="single")
         
         if uploaded:
             image = read_image(uploaded.read())
-            st.image(image, caption="Anh upload", use_column_width=True)
+            st.image(image, caption="Ảnh đã tải lên", use_column_width=True)
         
-        # Model info - ben duoi uploader
-        st.subheader(f"Mo hinh: {model_type}")
-        st.write(f"**Kich thuoc:** {cfg['img_size'][0]}x{cfg['img_size'][1]}")
+        # Thông tin mô hình
+        st.subheader(f"Mô hình: {model_type}")
+        st.write(f"**Độ phân giải:** {cfg['img_size'][0]}x{cfg['img_size'][1]}")
         
-        with st.expander("Mo hinh Mo ta"):
-            st.write(cfg.get('description', 'Khong co mo ta'))
+        with st.expander("Mô tả mô hình"):
+            st.write(cfg.get('description', 'Không có mô tả'))
         
-        with st.expander("Bo du lieu Thong tin"):
-            st.write(cfg.get('dataset', 'Khong co thong tin'))
+        with st.expander("Thông tin tập dữ liệu"):
+            st.write(cfg.get('dataset', 'Không có thông tin'))
     
     with col2:
         if not uploaded:
-            st.info("Upload anh de bat dau phan tich")
+            st.info("Vui lòng tải ảnh lá đậu lên để bắt đầu phân tích")
         else:
             show_gradcam = False
             if supports_gradcam(model_type):
-                show_gradcam = st.checkbox("Hien thi Grad-CAM (vung anh huong quyet dinh)", value=True)
+                show_gradcam = st.checkbox("Hiển thị vùng chú ý của AI (Grad-CAM)", value=True)
             else:
-                st.caption("Grad-CAM khong ho tro kien truc Vision Transformer (DeiT).")
+                st.caption("Grad-CAM chưa hỗ trợ kiến trúc DeiT (Vision Transformer).")
 
-            if st.button("Phan Tich", type="primary", use_container_width=True):
-                with st.spinner("Dang xu ly..."):
+            if st.button("Phân Tích Bệnh", type="primary", use_container_width=True):
+                with st.spinner("Đang phân tích chẩn đoán..."):
                     result = predict(model, image, model_type)
                     show_result(result)
 
                 if show_gradcam:
-                    with st.spinner("Dang tinh Grad-CAM..."):
+                    with st.spinner("Đang tạo bản đồ Grad-CAM..."):
                         overlay = generate_gradcam(model, image, model_type)
                     if overlay is not None:
-                        st.subheader("Grad-CAM: Vung anh huong den quyet dinh")
-                        st.image(overlay, caption="Vung do/vang = anh huong manh den du doan cua model",
+                        st.subheader("Bản đồ chú ý AI (Grad-CAM)")
+                        st.image(overlay, caption="Vùng đỏ/vàng = Vị trí AI tập trung nhận diện tổn thương đốm lá",
                                  use_column_width=True)
                     else:
-                        st.warning("Khong the tinh Grad-CAM cho model nay.")
+                        st.warning("Không thể tạo bản đồ Grad-CAM cho mô hình này.")
 
 
 def compare_view():
     col1, col2 = st.columns([1.2, 1])
     
     with col1:
-        st.subheader("So Sanh Tat Ca Model")
-        uploaded = st.file_uploader("Keo tha file vao day", type=['jpg', 'jpeg', 'png'], key="compare")
+        st.subheader("So Sánh Đồng Thời Các Mô Hình")
+        uploaded = st.file_uploader("Kéo thả ảnh vào đây (JPG, PNG)", type=['jpg', 'jpeg', 'png'], key="compare")
         
         if uploaded:
             image = read_image(uploaded.read())
-            st.image(image, caption="Anh upload", use_column_width=True)
+            st.image(image, caption="Ảnh đã tải lên", use_column_width=True)
     
     with col2:
         if not uploaded:
-            st.info("Upload anh de so sanh")
+            st.info("Vui lòng tải ảnh lên để bắt đầu so sánh")
         else:
-            if st.button("So Sanh Tat Ca", type="primary", use_container_width=True):
-                with st.spinner("Dang so sanh..."):
+            if st.button("So Sánh Tất Cả Mô Hình", type="primary", use_container_width=True):
+                with st.spinner("Đang phân tích so sánh..."):
                     results = {}
                     for m in MODELS.keys():
                         model = load_cached_model(m)
                         if model:
                             results[m] = predict(model, image, m)
                     
-                    # Bang so sanh
+                    # Bảng so sánh
                     df = pd.DataFrame([{
-                        'Model': m, 
-                        'Du doan': CLASS_LABELS.get(r['class'], r['class']),
-                        'Confidence': f"{r['confidence']:.1f}%",
-                        'Framework': MODELS[m].get('framework', 'N/A')
+                        'Mô hình': m, 
+                        'Chẩn đoán': CLASS_LABELS.get(r['class'], r['class']),
+                        'Độ tin cậy': f"{r['confidence']:.1f}%",
+                        'Nền tảng': MODELS[m].get('framework', 'N/A')
                     } for m, r in results.items()])
                     st.dataframe(df, hide_index=True, use_container_width=True)
                     
-                    # Bieu do
+                    # Biểu đồ so sánh
                     plot_compare(results)
 
 
@@ -170,7 +170,7 @@ def plot_compare(results):
     ax.set_xticks(x)
     ax.set_xticklabels([CLASS_LABELS.get(c, c) for c in CLASS_NAMES])
     ax.legend(fontsize='small')
-    ax.set_ylabel('Confidence (%)')
+    ax.set_ylabel('Độ tin cậy (%)')
     plt.tight_layout()
     st.pyplot(fig)
     plt.close()
@@ -184,11 +184,11 @@ def load_cached_model(model_type):
 def show_result(result):
     if 'segmentation_result' in result and result['segmentation_result']:
         img = result['segmentation_result'].plot()[:, :, ::-1]
-        st.image(img, caption="Segmentation", use_column_width=True)
+        st.image(img, caption="Phân vùng tổn thương (YOLOv8)", use_column_width=True)
     
     st.dataframe(pd.DataFrame([{
-        'Loai': CLASS_LABELS.get(result['class'], result['class']),
-        'Confidence': f"{result['confidence']:.1f}%"
+        'Chẩn đoán': CLASS_LABELS.get(result['class'], result['class']),
+        'Độ tin cậy': f"{result['confidence']:.1f}%"
     }]), hide_index=True)
     
     fig, ax = plt.subplots(figsize=(5, 2.0))
@@ -196,7 +196,7 @@ def show_result(result):
     labels = [CLASS_LABELS.get(c, c) for c in result['probabilities'].keys()]
     colors = ['#e74c3c' if p == max(probs) else '#3498db' for p in probs]
     ax.bar(labels, probs, color=colors)
-    ax.set_ylabel('Confidence (%)')
+    ax.set_ylabel('Độ tin cậy (%)')
     st.pyplot(fig)
     plt.close()
     
