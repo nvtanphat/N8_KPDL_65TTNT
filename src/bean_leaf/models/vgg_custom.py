@@ -114,12 +114,16 @@ class BeanLeafLite(nn.Module):
     CNN nhẹ tự thiết kế cho Bean Leaf Classification (from scratch, không pretrained).
     Input: 3 x 384 x 384 (DEFAULT_CONFIG.img_size). Stem giảm size 1 lần, 5 stage
     LiteResidualBlock mỗi stage downsample x2 (tổng x64), rồi head mở rộng channel +
-    GAP + classifier 2 lớp FC. 2 stage cuối được nới rộng kênh (224/384 thay vì
-    192/320) - test acc 98.50% ở bản trước cho thấy dropout=0.3/se_reduction=4 đã
-    cân bằng regularization tốt (không phải underfitting do thiếu regularization),
-    nên tăng capacity thô (rộng hơn, không đổi độ sâu/dropout) là hướng an toàn hơn
-    để bù thêm sức học mà không phá vỡ cân bằng đã có. Vẫn ~1.2-1.4M tham số, nhẹ
-    hơn nhiều so với MobileNetV3-Large (~3.2M).
+    GAP + classifier 2 lớp FC. ~0.9-1.1M tham số tuỳ đúng con số khi khởi tạo (in bằng
+    print_model_summary), nhẹ hơn MobileNetV3-Large (~3.2M).
+
+    Đã thử 2 hướng "cải tiến" và cả 2 đều làm tệ hơn 98.50% (test acc, xem README):
+    giảm regularization (se_reduction 4->2, dropout 0.3->0.2) -> 94.74%; tăng capacity
+    thô (nới kênh 2 stage cuối) -> 92.48%. Cả 2 lần đều overfit nhanh hơn (train acc
+    ~99% trong khi internal-val plateau thấp hơn) - dataset train-from-scratch quy mô
+    nhỏ này không "nuôi" nổi thêm capacity, nên kiến trúc gốc dưới đây (rộng vừa phải,
+    se_reduction=4, dropout=0.3) đã là điểm cân bằng tốt, không nên chỉnh thêm mà
+    không có lý do mới.
     """
     def __init__(self, num_classes=3):
         super().__init__()
@@ -133,9 +137,9 @@ class BeanLeafLite(nn.Module):
         stage_configs = [
             (48, 2, 2),
             (72, 2, 2),
-            (128, 3, 2),
-            (224, 3, 2),
-            (384, 2, 2),
+            (120, 3, 2),
+            (192, 3, 2),
+            (320, 2, 2),
         ]
         stages = []
         in_channels = 32
