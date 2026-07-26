@@ -78,7 +78,7 @@ class LiteResidualBlock(nn.Module):
     Cần shortcut 1x1 (projection) khi đổi số kênh hoặc downsample (stride=2); nếu giữ
     nguyên kích thước/số kênh thì cộng thẳng input (identity) không tốn thêm tham số.
     """
-    def __init__(self, in_channels, out_channels, stride=1, se_reduction=2):
+    def __init__(self, in_channels, out_channels, stride=1, se_reduction=4):
         super().__init__()
         self.depthwise = nn.Conv2d(
             in_channels, in_channels, kernel_size=3, stride=stride,
@@ -157,7 +157,7 @@ class BeanLeafLite(nn.Module):
             nn.Linear(head_channels, 128),
             nn.BatchNorm1d(128),
             nn.SiLU(inplace=True),
-            nn.Dropout(0.2),
+            nn.Dropout(0.3),
             nn.Linear(128, num_classes),
         )
 
