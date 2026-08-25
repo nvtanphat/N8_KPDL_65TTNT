@@ -28,6 +28,7 @@ from bean_leaf.training.amp import get_scaler
 from bean_leaf.training.early_stopping import EarlyStopping
 from sklearn.metrics import confusion_matrix
 
+from bean_leaf.evaluation.complexity import model_complexity
 from bean_leaf.evaluation.metrics import collect_predictions
 from bean_leaf.utils.paths import get_default_output_dir
 from bean_leaf.utils.seed import set_seed
@@ -88,19 +89,21 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
     print("=" * 60)
 
     epochs = DEFAULT_CONFIG.num_epochs
-    # AMP dùng chung: cần thiết vì img_size=384 áp cho cả 4 model có thể vượt VRAM GPU
+    # AMP dùng chung cho cả 5 model: img_size=384 ở batch 32 có thể vượt VRAM GPU
     # (thực tế đã CUDA OOM với EfficientNet-B3 384px/batch32 khi train thuần fp32).
     scaler = get_scaler(device)
 
-    if model_name == 'vgg':
-        criterion, optimizer, scheduler = bean_leaf_lite.get_optimizer_scheduler(model, train_loader, epochs)
-        train_fn, val_fn = bean_leaf_lite.train_one_epoch, bean_leaf_lite.validate
-    else:  # efficientnet & mobilenet: cùng 1 recipe (AdamW + CosineAnnealingLR, full fine-tune)
-        module = MODEL_REGISTRY[model_name]['module']
-        criterion, optimizer, scheduler = module.get_optimizer_scheduler(model, epochs)
-        train_fn, val_fn = module.train_one_epoch, module.validate
+    # Mọi model đi chung 1 pipeline: cùng AdamW + CosineAnnealingLR(T_max=epochs), cùng cách
+    # step scheduler (1 lần/epoch), cùng tiêu chí lưu checkpoint. Không còn nhánh riêng cho
+    # model nào - đó là điều kiện để bảng benchmark so sánh kiến trúc chứ không so sánh recipe.
+    module = MODEL_REGISTRY[model_name]['module']
+    criterion, optimizer, scheduler = module.get_optimizer_scheduler(model, epochs)
+    train_fn, val_fn = module.train_one_epoch, module.validate
 
-    early_stopping = EarlyStopping(patience=DEFAULT_CONFIG.patience, verbose=True, path=model_path)
+    # patience=0 -> đặt ngưỡng lớn hơn tổng số epoch: EarlyStopping không bao giờ kích hoạt
+    # nhưng vẫn làm nhiệm vụ lưu checkpoint tốt nhất theo internal-val loss.
+    patience = DEFAULT_CONFIG.patience if DEFAULT_CONFIG.patience > 0 else epochs + 1
+    early_stopping = EarlyStopping(patience=patience, verbose=True, path=model_path)
 
     epochs_run = 0
     for epoch in range(epochs):
@@ -108,14 +111,11 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
         print(f"\nEpoch {epoch + 1}/{epochs}")
         print("-" * 40)
 
-        if model_name == 'vgg':
-            # OneCycleLR đã được step theo từng batch bên trong train_fn, không step lại ở đây
-            train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, scheduler, device, scaler)
-            val_loss, val_acc, _, _ = val_fn(model, internal_val_loader, criterion, device)
-        else:  # efficientnet & mobilenet: CosineAnnealingLR, step 1 lần/epoch, không phụ thuộc val_loss
-            train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, device, scaler)
-            val_loss, val_acc = val_fn(model, internal_val_loader, criterion, device)
-            scheduler.step()
+        train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, device, scaler)
+        # bean_leaf_lite.validate trả thêm (preds, labels) ở cuối - lấy 2 phần tử đầu cho đồng nhất
+        result = val_fn(model, internal_val_loader, criterion, device)
+        val_loss, val_acc = result[0], result[1]
+        scheduler.step()
 
         print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
         print(f"[Internal Val] Loss: {val_loss:.4f} | Acc: {val_acc:.4f}")
@@ -150,6 +150,14 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
 
     fold_results = []
     oof_true, oof_pred = [], []
+
+    # Chi phí tính toán đo 1 lần, không phụ thuộc fold. Đo ở đúng img_size dùng khi train
+    # để con số FLOPs khớp với điều kiện benchmark, không phải con số 224px của paper gốc.
+    complexity = model_complexity(MODEL_REGISTRY[model_name]['create'](NUM_CLASSES),
+                                  DEFAULT_CONFIG.img_size, device='cpu')
+    print(f"[COST] {model_name}: {complexity['params']/1e6:.2f}M params | "
+          f"{complexity['flops']/1e9:.2f} GFLOPs ({complexity['macs']/1e9:.2f} GMACs) "
+          f"@ {DEFAULT_CONFIG.img_size}px")
 
     loaders = get_kfold_loaders(train_dir, val_dir, train_tf, val_tf, DEFAULT_CONFIG.batch_size,
                                 n_splits=n_splits, seed=seed)
@@ -191,6 +199,9 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
         'base_seed': seed,
         'img_size': DEFAULT_CONFIG.img_size,
         'batch_size': DEFAULT_CONFIG.batch_size,
+        'num_epochs': DEFAULT_CONFIG.num_epochs,
+        'patience': DEFAULT_CONFIG.patience,
+        'complexity': complexity,
         'folds': fold_results,
         'test_acc_mean': float(statistics.mean(test_accs)),
         # stdev cần >=2 mẫu; n_splits luôn >=2 nên không cần guard, nhưng để rõ ý đồ vẫn ghi chú:
@@ -220,6 +231,8 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
           f"{summary['test_acc_mean']:.4f} ± {summary['test_acc_std']:.4f} "
           f"(min {summary['test_acc_min']:.4f}, max {summary['test_acc_max']:.4f})")
     print(f"  Out-of-fold acc (toàn bộ train_dir, {summary['oof_n']} ảnh): {summary['oof_acc']:.4f}")
+    print(f"  Chi phí: {complexity['params']/1e6:.2f}M params | "
+          f"{complexity['flops']/1e9:.2f} GFLOPs @ {DEFAULT_CONFIG.img_size}px")
     print()
     print(f"  Đã lưu: {summary_path}")
     return summary

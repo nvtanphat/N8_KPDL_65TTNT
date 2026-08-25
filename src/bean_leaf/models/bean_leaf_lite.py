@@ -17,7 +17,6 @@ bù đắp cho việc giảm params, không pretrained.
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import OneCycleLR
 from sklearn.metrics import accuracy_score
 
 from bean_leaf.config import DEFAULT_CONFIG
@@ -33,15 +32,6 @@ LEARNING_RATE = DEFAULT_CONFIG.learning_rate
 WEIGHT_DECAY = DEFAULT_CONFIG.weight_decay
 PATIENCE = DEFAULT_CONFIG.patience
 LABEL_SMOOTHING = DEFAULT_CONFIG.label_smoothing
-GRAD_CLIP = 1.0  # Riêng của BeanLeafLite (OneCycleLR + grad clip) - không thuộc config chung
-# OneCycleLR cần biết TRƯỚC tổng số epoch để tính lịch anneal LR về gần 0 ở epoch cuối.
-# Nhưng NUM_EPOCHS=100 chỉ là trần tối đa - EarlyStopping (patience=7) thực tế luôn dừng
-# sớm hơn nhiều (quan sát thực nghiệm: dừng quanh epoch 40-60). Nếu cấu hình OneCycleLR
-# cho 100 epoch, lịch LR bị "cắt ngang" giữa chừng lúc early-stop - LR vẫn còn cao, chưa
-# kịp anneal thấp - khiến checkpoint cuối cùng hội tụ kém hơn hẳn so với các model dùng
-# CosineAnnealingLR (ít nhạy với việc dừng sớm hơn). Đặt riêng một mốc epoch thực tế hơn
-# cho OneCycleLR để nó có cơ hội hoàn thành chu kỳ anneal trước khi patience kích hoạt.
-ONECYCLE_TARGET_EPOCHS = 50
 
 # Device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -179,7 +169,7 @@ class BeanLeafLite(nn.Module):
 
 
 # ===================== TRAINING FUNCTIONS =====================
-def train_one_epoch(model, loader, criterion, optimizer, scheduler, device, scaler=None):
+def train_one_epoch(model, loader, criterion, optimizer, device, scaler=None):
     """Train model for one epoch (AMP nếu có scaler - xem bean_leaf.training.amp)"""
     model.train()
     running_loss = 0.0
@@ -197,22 +187,11 @@ def train_one_epoch(model, loader, criterion, optimizer, scheduler, device, scal
 
         if scaler is not None:
             scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)  # cần unscale trước khi clip theo norm thật
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=GRAD_CLIP)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=GRAD_CLIP)
             optimizer.step()
-
-        if scheduler is not None:
-            try:
-                scheduler.step()
-            except ValueError:
-                # OneCycleLR đã hết total_steps (huấn luyện chạy dài hơn ONECYCLE_TARGET_EPOCHS
-                # dự kiến) - giữ nguyên LR đã anneal thấp ở bước cuối, không cần step tiếp.
-                pass
 
         running_loss += loss.item() * inputs.size(0)
         _, preds = torch.max(outputs, 1)
@@ -254,18 +233,17 @@ def create_lite_model(num_classes=NUM_CLASSES):
     return model
 
 
-def get_optimizer_scheduler(model, train_loader, num_epochs=NUM_EPOCHS):
-    """Create optimizer and scheduler"""
+def get_optimizer_scheduler(model, num_epochs=NUM_EPOCHS):
+    """
+    Create optimizer and scheduler - y hệt 4 model còn lại (AdamW + CosineAnnealingLR).
+
+    Trước đây BeanLeafLite dùng riêng OneCycleLR(max_lr=2e-3) + grad clip, tức peak LR gấp
+    6.7 lần 4 model kia và một lịch LR khác hẳn. Bảng benchmark khi đó không còn là so sánh
+    kiến trúc mà là so sánh "model nào được tune riêng". Đã gỡ để mọi model dùng chung 1 recipe.
+    """
     criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING)
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    onecycle_epochs = min(num_epochs, ONECYCLE_TARGET_EPOCHS)
-    scheduler = OneCycleLR(
-        optimizer,
-        max_lr=2e-3,
-        epochs=onecycle_epochs,
-        steps_per_epoch=len(train_loader),
-        pct_start=0.3  # Warm-up 30%
-    )
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
     return criterion, optimizer, scheduler
 
 

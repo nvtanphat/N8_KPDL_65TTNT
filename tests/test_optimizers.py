@@ -15,8 +15,7 @@ def _dummy_loader(batch_size=2, n_batches=3):
 
 def test_vgg_optimizer_scheduler():
     model = bean_leaf_lite.create_lite_model(NUM_CLASSES)
-    loader = _dummy_loader()
-    criterion, optimizer, scheduler = bean_leaf_lite.get_optimizer_scheduler(model, loader, num_epochs=2)
+    criterion, optimizer, scheduler = bean_leaf_lite.get_optimizer_scheduler(model, num_epochs=2)
     assert criterion is not None and optimizer is not None and scheduler is not None
 
 
@@ -42,3 +41,42 @@ def test_shufflenetv2_optimizer_scheduler():
     model = shufflenetv2.create_shufflenetv2_model(NUM_CLASSES, pretrained=False)
     criterion, optimizer, scheduler = shufflenetv2.get_optimizer_scheduler(model, num_epochs=2)
     assert criterion is not None and optimizer is not None and scheduler is not None
+
+
+def test_moi_model_dung_chung_1_recipe():
+    """
+    Chốt bằng test: không model nào được có optimizer/scheduler riêng.
+    Đây là điều kiện để bảng benchmark là so sánh kiến trúc chứ không phải so sánh recipe -
+    trước đây BeanLeafLite dùng OneCycleLR(max_lr=2e-3) trong khi 4 model kia dùng
+    CosineAnnealingLR(lr=3e-4), tức peak LR gấp 6.7 lần.
+    """
+    from bean_leaf.config import DEFAULT_CONFIG
+
+    builders = [
+        (bean_leaf_lite, bean_leaf_lite.create_lite_model(NUM_CLASSES)),
+        (efficientnet, efficientnet.create_efficientnet_model(NUM_CLASSES, pretrained=False)),
+        (mobilenetv3, mobilenetv3.create_mobilenetv3_model(NUM_CLASSES, pretrained=False)),
+        (resnet50, resnet50.create_resnet50_model(NUM_CLASSES, pretrained=False)),
+        (shufflenetv2, shufflenetv2.create_shufflenetv2_model(NUM_CLASSES, pretrained=False)),
+    ]
+
+    for module, model in builders:
+        name = module.__name__.rsplit('.', 1)[-1]
+        criterion, optimizer, scheduler = module.get_optimizer_scheduler(model, num_epochs=7)
+
+        assert isinstance(optimizer, torch.optim.AdamW), f"{name} không dùng AdamW"
+        assert isinstance(scheduler, torch.optim.lr_scheduler.CosineAnnealingLR),             f"{name} không dùng CosineAnnealingLR"
+        assert scheduler.T_max == 7, f"{name} có T_max khác num_epochs"
+        assert optimizer.param_groups[0]['lr'] == DEFAULT_CONFIG.learning_rate,             f"{name} có learning rate riêng"
+        assert optimizer.param_groups[0]['weight_decay'] == DEFAULT_CONFIG.weight_decay,             f"{name} có weight decay riêng"
+        assert criterion.label_smoothing == DEFAULT_CONFIG.label_smoothing,             f"{name} có label smoothing riêng"
+
+
+def test_moi_model_train_one_epoch_cung_chu_ky():
+    """train_one_epoch của mọi model phải cùng signature thì train.py mới gọi chung 1 nhánh."""
+    import inspect
+
+    modules = [bean_leaf_lite, efficientnet, mobilenetv3, resnet50, shufflenetv2]
+    sigs = {m.__name__.rsplit('.', 1)[-1]: list(inspect.signature(m.train_one_epoch).parameters)
+            for m in modules}
+    assert len(set(map(tuple, sigs.values()))) == 1, f"signature lệch nhau: {sigs}"
