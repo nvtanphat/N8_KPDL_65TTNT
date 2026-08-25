@@ -1,7 +1,7 @@
 from PIL import Image
 from torchvision import transforms
 
-from bean_leaf.data.dataset import create_df, get_train_val_test_loaders
+from bean_leaf.data.dataset import create_df, get_kfold_loaders, get_train_val_test_loaders
 
 
 def _make_image_folder(root, class_counts):
@@ -51,3 +51,28 @@ def test_create_df_reads_class_subfolders(tmp_path):
 def test_create_df_missing_dir_returns_empty():
     df = create_df("this/path/does/not/exist")
     assert len(df) == 0
+
+
+def test_get_kfold_loaders_covers_every_train_image_exactly_once(tmp_path):
+    train_dir = tmp_path / "train"
+    val_dir = tmp_path / "val"
+    _make_image_folder(train_dir, {"healthy": 20, "bean_rust": 20})
+    _make_image_folder(val_dir, {"healthy": 5, "bean_rust": 5})
+
+    tf = transforms.Compose([transforms.Resize((8, 8)), transforms.ToTensor()])
+    folds = list(get_kfold_loaders(
+        str(train_dir), str(val_dir), tf, tf, batch_size=4, n_splits=4, seed=0,
+    ))
+
+    assert len(folds) == 4
+    seen = []
+    for fold, train_loader, internal_val_loader, test_loader, internal_val_idx in folds:
+        # Mỗi fold: train + internal-val phải ghép lại thành đúng toàn bộ train_dir
+        assert len(train_loader.dataset) + len(internal_val_loader.dataset) == 40
+        # val_dir giữ nguyên làm test set, không bị cắt xén theo fold
+        assert len(test_loader.dataset) == 10
+        seen.extend(internal_val_idx.tolist())
+
+    # Gộp internal-val của mọi fold = phủ đúng 1 lần toàn bộ train_dir (điều kiện để
+    # dự đoán out-of-fold là ước lượng hợp lệ trên cả tập)
+    assert sorted(seen) == list(range(40))

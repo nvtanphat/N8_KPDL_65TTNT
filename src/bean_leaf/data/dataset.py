@@ -1,7 +1,7 @@
 import os
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets
 
@@ -63,3 +63,54 @@ def get_train_val_test_loaders(train_dir, val_dir, train_transform, val_transfor
         num_workers=num_workers, pin_memory=True,
     )
     return train_loader, internal_val_loader, test_loader
+
+
+def _make_loaders(full_train_aug, full_train_plain, test_dataset, train_idx, internal_val_idx,
+                  batch_size, num_workers):
+    """Dựng 3 DataLoader từ index đã chia - dùng chung cho holdout và k-fold."""
+    train_loader = DataLoader(
+        Subset(full_train_aug, train_idx), batch_size=batch_size, shuffle=True,
+        num_workers=num_workers, pin_memory=True,
+    )
+    internal_val_loader = DataLoader(
+        Subset(full_train_plain, internal_val_idx), batch_size=batch_size, shuffle=False,
+        num_workers=num_workers, pin_memory=True,
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=batch_size, shuffle=False,
+        num_workers=num_workers, pin_memory=True,
+    )
+    return train_loader, internal_val_loader, test_loader
+
+
+def get_kfold_loaders(train_dir, val_dir, train_transform, val_transform, batch_size,
+                      n_splits=5, seed=42, num_workers=0):
+    """
+    Generator yield (fold_idx, train_loader, internal_val_loader, test_loader, internal_val_idx)
+    cho từng fold của StratifiedKFold trên train_dir.
+
+    Khác get_train_val_test_loaders ở chỗ chia train_dir thành n_splits phần thay vì 1 lần
+    holdout 85/15: mỗi ảnh trong train_dir được làm internal-val đúng 1 lần, nên gộp dự đoán
+    của tất cả fold lại (out-of-fold) sẽ có ước lượng accuracy trên TOÀN BỘ train_dir thay vì
+    chỉ trên 15% - khoảng tin cậy hẹp hơn nhiều so với test set 133 ảnh.
+
+    val_dir vẫn giữ nguyên vai trò TEST SET độc lập và được đánh giá lại ở từng fold: độ lệch
+    chuẩn của test accuracy giữa các fold chính là thước đo "kết quả dao động bao nhiêu giữa
+    các lần chạy" - thứ mà 1 lần chạy đơn lẻ không thể nói được.
+
+    internal_val_idx được trả về để map dự đoán out-of-fold ngược lại đúng ảnh gốc
+    (internal_val_loader dùng shuffle=False nên thứ tự dự đoán khớp thứ tự index này).
+    """
+    full_train_aug = datasets.ImageFolder(train_dir, transform=train_transform)
+    full_train_plain = datasets.ImageFolder(train_dir, transform=val_transform)
+    test_dataset = datasets.ImageFolder(val_dir, transform=val_transform)
+
+    labels = [label for _, label in full_train_aug.samples]
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+
+    for fold, (train_idx, internal_val_idx) in enumerate(skf.split(range(len(labels)), labels), start=1):
+        train_loader, internal_val_loader, test_loader = _make_loaders(
+            full_train_aug, full_train_plain, test_dataset,
+            train_idx, internal_val_idx, batch_size, num_workers,
+        )
+        yield fold, train_loader, internal_val_loader, test_loader, internal_val_idx

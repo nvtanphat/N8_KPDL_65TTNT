@@ -10,20 +10,27 @@ if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
 import argparse
+import json
 import os
+import statistics
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torchvision.transforms import InterpolationMode
 
 from bean_leaf.config import DEFAULT_CONFIG
-from bean_leaf.data.dataset import create_df, get_train_val_test_loaders
+from bean_leaf.data.dataset import create_df, get_kfold_loaders, get_train_val_test_loaders
 from bean_leaf.data import eda
 from bean_leaf.data.kaggle_download import download_dataset
 from bean_leaf.data.transforms import build_train_transform, build_val_transform
 from bean_leaf.training.amp import get_scaler
 from bean_leaf.training.early_stopping import EarlyStopping
+from sklearn.metrics import confusion_matrix
+
+from bean_leaf.evaluation.metrics import collect_predictions
 from bean_leaf.utils.paths import get_default_output_dir
+from bean_leaf.utils.seed import set_seed
 
 from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, resnet50, shufflenetv2
 
@@ -59,9 +66,14 @@ def _evaluate_on_test(model_name, model, test_loader, device):
 
 
 # ===================== TRAINING FUNCTIONS =====================
-def train_model(model_name, train_loader, internal_val_loader, test_loader, model, output_dir):
-    """Train a specific model, skip nếu checkpoint đã tồn tại. Trả về (model, test_acc)."""
-    model_output_dir = os.path.join(output_dir, model_name)
+def train_model(model_name, train_loader, internal_val_loader, test_loader, model, output_dir,
+                run_dir=None):
+    """
+    Train a specific model, skip nếu checkpoint đã tồn tại.
+    run_dir: thư mục checkpoint riêng cho 1 fold khi chạy k-fold (mặc định <output_dir>/<model_name>).
+    Trả về (model, stats) với stats = {test_acc, test_loss, epochs_run}.
+    """
+    model_output_dir = run_dir or os.path.join(output_dir, model_name)
     os.makedirs(model_output_dir, exist_ok=True)
     model_path = os.path.join(model_output_dir, f'best_{model_name}_model.pth')
 
@@ -70,7 +82,7 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
         model.load_state_dict(torch.load(model_path, map_location=device))
         test_loss, test_acc = _evaluate_on_test(model_name, model, test_loader, device)
         print(f"[TEST] Loss: {test_loss:.4f} | Acc: {test_acc:.4f}")
-        return model, test_acc
+        return model, {'test_acc': test_acc, 'test_loss': test_loss, 'epochs_run': 0}
 
     print(f"\n[TRAIN] Training {model_name}...")
     print("=" * 60)
@@ -90,7 +102,9 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
 
     early_stopping = EarlyStopping(patience=DEFAULT_CONFIG.patience, verbose=True, path=model_path)
 
+    epochs_run = 0
     for epoch in range(epochs):
+        epochs_run = epoch + 1
         print(f"\nEpoch {epoch + 1}/{epochs}")
         print("-" * 40)
 
@@ -116,7 +130,99 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
 
     test_loss, test_acc = _evaluate_on_test(model_name, model, test_loader, device)
     print(f"[TEST] Loss: {test_loss:.4f} | Acc: {test_acc:.4f}")
-    return model, test_acc
+    return model, {'test_acc': test_acc, 'test_loss': test_loss, 'epochs_run': epochs_run}
+
+
+# ===================== K-FOLD CROSS-VALIDATION =====================
+def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
+    """
+    Train model_name n_splits lần trên các fold khác nhau của train_dir, mỗi fold 1 seed riêng.
+
+    Trả về 2 nhóm số liệu bổ trợ nhau:
+    - test accuracy từng fold trên val_dir (test set độc lập, 133 ảnh): mean ± std cho biết kết
+      quả dao động bao nhiêu giữa các lần chạy - 1 lần chạy đơn lẻ không nói được điều này.
+    - out-of-fold accuracy: gộp dự đoán internal-val của tất cả fold lại, phủ TOÀN BỘ train_dir
+      (~1034 ảnh) nên khoảng tin cậy hẹp hơn nhiều so với 133 ảnh của test set.
+    """
+    entry = MODEL_REGISTRY[model_name]
+    train_tf = build_train_transform(DEFAULT_CONFIG.img_size, entry['interpolation'])
+    val_tf = build_val_transform(DEFAULT_CONFIG.img_size, entry['interpolation'])
+
+    fold_results = []
+    oof_true, oof_pred = [], []
+
+    loaders = get_kfold_loaders(train_dir, val_dir, train_tf, val_tf, DEFAULT_CONFIG.batch_size,
+                                n_splits=n_splits, seed=seed)
+
+    for fold, train_loader, internal_val_loader, test_loader, _internal_val_idx in loaders:
+        # Seed lệch theo fold: mỗi fold vẫn tái lập được, nhưng khởi tạo trọng số khác nhau nên
+        # std giữa các fold phản ánh cả dao động do split lẫn do khởi tạo - đúng thứ cần đo.
+        fold_seed = seed + fold
+        set_seed(fold_seed)
+
+        print()
+        print("=" * 60)
+        print(f"[FOLD {fold}/{n_splits}] model={model_name} seed={fold_seed}")
+        print("=" * 60)
+
+        model = MODEL_REGISTRY[model_name]['create'](NUM_CLASSES).to(device)
+        run_dir = os.path.join(output_dir, model_name, f'fold{fold}')
+        model, stats = train_model(model_name, train_loader, internal_val_loader, test_loader,
+                                   model, output_dir, run_dir=run_dir)
+
+        y_true, y_pred = collect_predictions(model, internal_val_loader, device)
+        oof_true.append(y_true)
+        oof_pred.append(y_pred)
+        fold_acc = float((y_true == y_pred).mean())
+
+        stats.update({'fold': fold, 'seed': fold_seed, 'oof_acc': fold_acc,
+                      'oof_n': int(len(y_true))})
+        fold_results.append(stats)
+        print(f"[FOLD {fold}] test_acc={stats['test_acc']:.4f} | oof_acc={fold_acc:.4f} "
+              f"| epochs={stats['epochs_run']}")
+
+    oof_true = np.concatenate(oof_true)
+    oof_pred = np.concatenate(oof_pred)
+    test_accs = [r['test_acc'] for r in fold_results]
+
+    summary = {
+        'model': model_name,
+        'n_splits': n_splits,
+        'base_seed': seed,
+        'img_size': DEFAULT_CONFIG.img_size,
+        'batch_size': DEFAULT_CONFIG.batch_size,
+        'folds': fold_results,
+        'test_acc_mean': float(statistics.mean(test_accs)),
+        # stdev cần >=2 mẫu; n_splits luôn >=2 nên không cần guard, nhưng để rõ ý đồ vẫn ghi chú:
+        # đây là std mẫu (ddof=1), không phải std tổng thể.
+        'test_acc_std': float(statistics.stdev(test_accs)),
+        'test_acc_min': float(min(test_accs)),
+        'test_acc_max': float(max(test_accs)),
+        'oof_acc': float((oof_true == oof_pred).mean()),
+        'oof_n': int(len(oof_true)),
+        'oof_confusion_matrix': confusion_matrix(oof_true, oof_pred).tolist(),
+    }
+
+    summary_path = os.path.join(output_dir, model_name, f'kfold_{model_name}.json')
+    os.makedirs(os.path.dirname(summary_path), exist_ok=True)
+    with open(summary_path, 'w', encoding='utf-8') as f:
+        json.dump(summary, f, indent=2, ensure_ascii=False)
+
+    print()
+    print("=" * 60)
+    print(f"K-FOLD SUMMARY - {model_name} ({n_splits} folds, base seed {seed})")
+    print("=" * 60)
+    for r in fold_results:
+        print(f"  fold {r['fold']} (seed {r['seed']}): test_acc={r['test_acc']:.4f} "
+              f"| oof_acc={r['oof_acc']:.4f} | epochs={r['epochs_run']}")
+    print()
+    print(f"  Test acc (val_dir, {n_splits} lần chạy): "
+          f"{summary['test_acc_mean']:.4f} ± {summary['test_acc_std']:.4f} "
+          f"(min {summary['test_acc_min']:.4f}, max {summary['test_acc_max']:.4f})")
+    print(f"  Out-of-fold acc (toàn bộ train_dir, {summary['oof_n']} ảnh): {summary['oof_acc']:.4f}")
+    print()
+    print(f"  Đã lưu: {summary_path}")
+    return summary
 
 
 # ===================== MAIN =====================
@@ -132,7 +238,19 @@ def main():
                         help='Where to save checkpoints (default: ./outputs, '
                              'or $BEAN_LEAF_OUTPUT_DIR if set)')
     parser.add_argument('--eda', action='store_true', help='Run EDA before training')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Seed cố định cho khởi tạo trọng số / shuffle / augmentation. '
+                             'Không có seed thì 2 lần chạy cùng code vẫn ra kết quả khác nhau, '
+                             'rõ nhất ở BeanLeafLite vì model này train from-scratch.')
+    parser.add_argument('--kfold', type=int, default=0, metavar='K',
+                        help='Chạy StratifiedKFold K fold trên train_dir thay vì holdout 85/15 '
+                             '1 lần. Mỗi fold train lại từ đầu với seed riêng, cho ra mean±std '
+                             'của test acc + out-of-fold acc trên toàn bộ train_dir. K=0 (mặc '
+                             'định) = giữ nguyên cách chạy cũ.')
     args = parser.parse_args()
+
+    if args.kfold == 1 or args.kfold < 0:
+        parser.error('--kfold phải >= 2 (hoặc 0 để tắt); 1 fold không tính được std.')
 
     output_dir = args.output_dir or get_default_output_dir()
 
@@ -149,14 +267,23 @@ def main():
         eda.plot_class_distribution(train_df, title='Training Set Distribution')
 
     models_to_train = ALL_MODELS if args.model == 'all' else [args.model]
+
+    if args.kfold:
+        for model_name in models_to_train:
+            run_kfold(model_name, train_dir, val_dir, output_dir, args.kfold, args.seed)
+        return
+
+    # Chạy thường: 1 holdout 85/15, seed cố định để lần chạy sau tái lập được.
+    set_seed(args.seed)
+    print(f'[SEED] {args.seed}')
     test_results = {}
 
     for model_name in models_to_train:
         train_loader, internal_val_loader, test_loader = get_model_dataloaders(model_name, train_dir, val_dir)
 
         model = MODEL_REGISTRY[model_name]['create'](NUM_CLASSES).to(device)
-        model, test_acc = train_model(model_name, train_loader, internal_val_loader, test_loader, model, output_dir)
-        test_results[model_name] = test_acc
+        model, stats = train_model(model_name, train_loader, internal_val_loader, test_loader, model, output_dir)
+        test_results[model_name] = stats['test_acc']
 
         print(f"\n{model_name.upper()} completed!")
 

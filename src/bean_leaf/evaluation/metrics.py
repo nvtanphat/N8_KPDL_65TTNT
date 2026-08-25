@@ -23,6 +23,16 @@ def _run_inference(model, val_loader, device):
     return np.concatenate(all_labels), np.concatenate(all_scores)
 
 
+def collect_predictions(model, loader, device):
+    """
+    Trả về (y_true, y_pred) dạng numpy cho toàn bộ loader - dùng để gom dự đoán
+    out-of-fold khi chạy k-fold, nơi cần nhãn dự đoán từng ảnh chứ không chỉ accuracy.
+    Loader phải dùng shuffle=False thì thứ tự trả về mới khớp thứ tự index của Subset.
+    """
+    y_true, y_score = _run_inference(model, loader, device)
+    return y_true, np.argmax(y_score, axis=1)
+
+
 def evaluate_model(model, val_loader, device, class_names):
     """
     Đánh giá model PyTorch trên tập validation: classification report + confusion matrix.
