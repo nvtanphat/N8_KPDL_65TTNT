@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bean-leaf"
 version = "0.1.0"
-description = "Bean Leaf Lesions Classification & Instance Segmentation System"
+description = "Bean Leaf Lesions Classification System"
 requires-python = ">=3.10"
 
 [tool.setuptools.packages.find]

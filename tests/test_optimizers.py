@@ -1,9 +1,8 @@
-"""Đảm bảo get_optimizer_scheduler() của từng model khởi tạo được (bắt regression như
-DeiT từng thiếu scheduler và bị crash khi train)."""
+"""Đảm bảo get_optimizer_scheduler() của từng model khởi tạo được."""
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
-from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, deit
+from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, resnet50, shufflenetv2
 
 NUM_CLASSES = 3
 
@@ -33,12 +32,13 @@ def test_mobilenetv3_optimizer_scheduler():
     assert criterion is not None and optimizer is not None and scheduler is not None
 
 
-def test_deit_optimizer_scheduler_and_ema():
-    model = deit.create_deit_model(NUM_CLASSES, pretrained=False)
-    loader = _dummy_loader()
-    criterion, optimizer, scheduler, model_ema = deit.get_optimizer_scheduler(
-        model, loader, num_epochs=2, warmup_epochs=1
-    )
-    assert criterion is not None and optimizer is not None
-    assert scheduler is not None  # trước đây bị bỏ trống -> crash khi train_one_epoch gọi scheduler.step()
-    assert model_ema is not None
+def test_resnet50_optimizer_scheduler():
+    model = resnet50.create_resnet50_model(NUM_CLASSES, pretrained=False)
+    criterion, optimizer, scheduler = resnet50.get_optimizer_scheduler(model, num_epochs=2)
+    assert criterion is not None and optimizer is not None and scheduler is not None
+
+
+def test_shufflenetv2_optimizer_scheduler():
+    model = shufflenetv2.create_shufflenetv2_model(NUM_CLASSES, pretrained=False)
+    criterion, optimizer, scheduler = shufflenetv2.get_optimizer_scheduler(model, num_epochs=2)
+    assert criterion is not None and optimizer is not None and scheduler is not None

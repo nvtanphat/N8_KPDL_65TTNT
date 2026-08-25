@@ -1,6 +1,6 @@
 """
 Centralized Configuration - Single Source of Truth cho hyperparameter dùng chung
-giữa 4 model classification (VGG/EfficientNet/MobileNetV3/DeiT).
+giữa 3 model classification (VGG/EfficientNet/MobileNetV3).
 
 Đổi 1 giá trị ở đây áp dụng ngay cho toàn bộ model đọc từ DEFAULT_CONFIG.
 """
@@ -12,8 +12,7 @@ from typing import List
 class BenchmarkConfig:
     num_classes: int = 3
 
-    # img_size=384: giữ chi tiết vết bệnh nhỏ (đốm góc lá, gỉ sắt) sắc nét hơn,
-    # đồng thời khớp sẵn với DeiT3 (patch16_384).
+    # img_size=384: giữ chi tiết vết bệnh nhỏ (đốm góc lá, gỉ sắt) sắc nét hơn.
     img_size: int = 384
     batch_size: int = 32
     # Trần epoch cao, để EarlyStopping (patience) tự quyết định dừng sớm thay vì

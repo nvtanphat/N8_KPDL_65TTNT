@@ -1,5 +1,5 @@
 """
-Đánh giá offline 4 model classification đã train, trên tập test độc lập (data/val -
+Đánh giá offline 3 model classification đã train, trên tập test độc lập (data/val -
 chưa từng dùng để chọn checkpoint/early-stopping trong lúc train, xem README mục
 Training: Train / Internal-Val / Test). Đọc checkpoint trực tiếp từ models/ (không
 cần train lại) và lưu toàn bộ metric (accuracy, precision/recall/F1 từng lớp,
@@ -23,7 +23,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from bean_leaf.config import DEFAULT_CONFIG
 from bean_leaf.data.transforms import build_val_transform
 from bean_leaf.evaluation.metrics import _run_inference
-from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, deit
+from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, resnet50, shufflenetv2
 
 # Khớp tên checkpoint + 'architecture' trong app/config.py (MODELS) - dùng chung 1
 # nguồn checkpoint với web app, không tải/lưu riêng.
@@ -33,20 +33,25 @@ MODEL_REGISTRY = {
         'checkpoint': 'best_beanleaflite.pth',
         'interpolation': InterpolationMode.BILINEAR,
     },
-    'efficientnet': {
-        'create': efficientnet.create_efficientnet_model,
-        'checkpoint': 'best_efficientnet.pth',
+    'shufflenetv2': {
+        'create': lambda num_classes: shufflenetv2.create_shufflenetv2_model(num_classes=num_classes, pretrained=False),
+        'checkpoint': 'best_shufflenetv2.pth',
         'interpolation': InterpolationMode.BILINEAR,
     },
     'mobilenetv3': {
-        'create': mobilenetv3.create_mobilenetv3_model,
+        'create': lambda num_classes: mobilenetv3.create_mobilenetv3_model(num_classes=num_classes, pretrained=False),
         'checkpoint': 'best_mobilenetv3.pth',
         'interpolation': InterpolationMode.BILINEAR,
     },
-    'deit': {
-        'create': deit.create_deit_model,
-        'checkpoint': 'best_deit.pth',
-        'interpolation': InterpolationMode.BICUBIC,
+    'efficientnet': {
+        'create': lambda num_classes: efficientnet.create_efficientnet_model(num_classes=num_classes, pretrained=False),
+        'checkpoint': 'best_efficientnet_b0.pth',
+        'interpolation': InterpolationMode.BILINEAR,
+    },
+    'resnet50': {
+        'create': lambda num_classes: resnet50.create_resnet50_model(num_classes=num_classes, pretrained=False),
+        'checkpoint': 'best_resnet50.pth',
+        'interpolation': InterpolationMode.BILINEAR,
     },
 }
 

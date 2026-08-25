@@ -1,7 +1,7 @@
 """
 Utility functions cho ứng dụng Web phân loại bệnh lá đậu
-Hỗ trợ load 5 loại model, tất cả đều chạy trên PyTorch:
-MobileNetV3, CNN VGG (custom), EfficientNet-B3, DeiT (timm), YOLO (Ultralytics, PyTorch backend)
+Hỗ trợ load các loại model chạy trên PyTorch:
+MobileNetV3, CNN VGG (custom), EfficientNet-B3
 """
 import sys
 if hasattr(sys.stdout, 'reconfigure'):
@@ -20,7 +20,6 @@ from config import MODELS, MODEL_DIR, CLASS_NAMES
 # Import các thư viện khi cần để giảm thời gian load ban đầu
 
 _torch = None
-_ultralytics = None
 
 
 def _get_torch():
@@ -32,15 +31,6 @@ def _get_torch():
     return _torch
 
 
-def _get_ultralytics():
-    """Lazy load Ultralytics"""
-    global _ultralytics
-    if _ultralytics is None:
-        from ultralytics import YOLO
-        _ultralytics = YOLO
-    return _ultralytics
-
-
 # ===================== MODEL ARCHITECTURES =====================
 # Dùng chung định nghĩa kiến trúc với lúc train (package bean_leaf, `pip install -e .`)
 # thay vì khai báo lại ở đây - tránh lệch kiến trúc giữa train và inference.
@@ -48,11 +38,6 @@ def _get_ultralytics():
 def _create_vgg_model(num_classes=3):
     from bean_leaf.models.bean_leaf_lite import create_lite_model
     return create_lite_model(num_classes=num_classes)
-
-
-def _create_deit_model(num_classes=3):
-    from bean_leaf.models.deit import create_deit_model
-    return create_deit_model(num_classes=num_classes, pretrained=False)
 
 
 def _create_mobilenetv3_model(num_classes=3):
@@ -65,6 +50,16 @@ def _create_efficientnet_model(num_classes=3):
     return create_efficientnet_model(num_classes=num_classes, pretrained=False)
 
 
+def _create_resnet50_model(num_classes=3):
+    from bean_leaf.models.resnet50 import create_resnet50_model
+    return create_resnet50_model(num_classes=num_classes, pretrained=False)
+
+
+def _create_shufflenetv2_model(num_classes=3):
+    from bean_leaf.models.shufflenetv2 import create_shufflenetv2_model
+    return create_shufflenetv2_model(num_classes=num_classes, pretrained=False)
+
+
 # ===================== MODEL LOADING =====================
 
 def load_model(model_type):
@@ -72,7 +67,7 @@ def load_model(model_type):
     Load model dựa trên loại model
     
     Args:
-        model_type: Tên model ('MobileNetV3', 'BeanLeafLite_Custom', 'EfficientNet_B3', 'DeiT_Transformer', 'YOLO_Segmentation')
+        model_type: Tên model ('MobileNetV3', 'BeanLeafLite_Custom', 'EfficientNet_B0', 'ResNet50', 'ShuffleNetV2')
     
     Returns:
         Model đã load weights
@@ -94,8 +89,6 @@ def load_model(model_type):
         if 'pytorch' in framework or 'timm' in framework:
             architecture = config.get('architecture', 'bean_leaf_lite')
             return _load_pytorch_model(model_path, architecture)
-        elif 'ultralytics' in framework or 'yolo' in framework:
-            return _load_yolo_model(model_path)
         else:
             print(f"Framework '{framework}' không được hỗ trợ")
             return None
@@ -112,12 +105,14 @@ def _load_pytorch_model(model_path, architecture):
 
     if architecture == 'bean_leaf_lite':
         model = _create_vgg_model(num_classes=3)
-    elif architecture == 'deit':
-        model = _create_deit_model(num_classes=3)
     elif architecture == 'mobilenetv3':
         model = _create_mobilenetv3_model(num_classes=3)
     elif architecture == 'efficientnet':
         model = _create_efficientnet_model(num_classes=3)
+    elif architecture == 'resnet50':
+        model = _create_resnet50_model(num_classes=3)
+    elif architecture == 'shufflenetv2':
+        model = _create_shufflenetv2_model(num_classes=3)
     else:
         print(f"Architecture '{architecture}' không được hỗ trợ")
         return None
@@ -138,19 +133,9 @@ def _load_pytorch_model(model_path, architecture):
     return model
 
 
-def _load_yolo_model(model_path):
-    """Load YOLO model"""
-    YOLO = _get_ultralytics()
-    model = YOLO(model_path)
-    print(f"Đã load YOLO model: {model_path}")
-    return model
-
-
 # ===================== GRAD-CAM =====================
-# Chỉ CNN có Conv2d cuối cùng dạng feature-map lưới mới áp dụng được Grad-CAM kiểu
-# này. DeiT là Vision Transformer (patch embedding + self-attention, không có feature
-# map dạng lưới ý nghĩa ở layer cuối) nên bỏ qua; YOLO đã có mask segmentation riêng.
-GRADCAM_ARCHITECTURES = {'bean_leaf_lite', 'mobilenetv3', 'efficientnet'}
+# Áp dụng cho các kiến trúc CNN có Conv2d cuối cùng dạng feature-map.
+GRADCAM_ARCHITECTURES = {'bean_leaf_lite', 'mobilenetv3', 'efficientnet', 'resnet50', 'shufflenetv2'}
 
 
 def supports_gradcam(model_type):
@@ -166,8 +151,7 @@ def generate_gradcam(model, image, model_type, alpha=0.45):
     bình từng kênh (global average pooling) rồi ReLU + normalize -> heatmap. Resize
     heatmap về kích thước ảnh gốc, tô màu jet, chồng lên ảnh gốc (alpha-blend).
 
-    Trả về PIL Image (overlay) hoặc None nếu model không có Conv2d nào (kiến trúc
-    không hỗ trợ, vd DeiT).
+    Trả về PIL Image (overlay) hoặc None nếu model không có Conv2d nào.
     """
     torch = _get_torch()
 
@@ -276,9 +260,7 @@ def preprocess_image(image, model_type):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         return img_tensor.to(device)
     
-    elif 'ultralytics' in framework or 'yolo' in framework:
-        # YOLO xử lý ảnh trong nội bộ
-        return image
+
     
     return image
 
@@ -302,8 +284,6 @@ def predict(model, image, model_type):
 
     if 'pytorch' in framework or 'timm' in framework:
         return _predict_pytorch(model, image, model_type)
-    elif 'ultralytics' in framework or 'yolo' in framework:
-        return _predict_yolo(model, image, model_type)
 
     return {'class': 'unknown', 'confidence': 0.0, 'probabilities': {}}
 
@@ -331,58 +311,4 @@ def _predict_pytorch(model, image, model_type):
     }
 
 
-def _predict_yolo(model, image, model_type):
-    """Dự đoán với YOLO model (segmentation)"""
-    # YOLO segmentation - hạ conf threshold để detect tốt hơn
-    results = model.predict(image, verbose=False, conf=0.1, imgsz=640)
-    
-    if len(results) > 0 and results[0].boxes is not None and len(results[0].boxes) > 0:
-        # Lấy detection có confidence cao nhất
-        boxes = results[0].boxes
-        confidences = boxes.conf.cpu().numpy()
-        classes = boxes.cls.cpu().numpy().astype(int)
-        
-        best_idx = np.argmax(confidences)
-        pred_class_idx = classes[best_idx]
-        confidence = float(confidences[best_idx]) * 100
-        
-        # Map YOLO class index to class name
-        yolo_names = results[0].names
-        pred_class = yolo_names.get(pred_class_idx, 'unknown')
-        
-        # Convert to standard class name format
-        pred_class_mapped = _map_yolo_class(pred_class)
-        
-        # Tạo probabilities (ước lượng từ detection confidences)
-        probabilities = {cls: 0.0 for cls in CLASS_NAMES}
-        probabilities[pred_class_mapped] = confidence
-        
-        return {
-            'class': pred_class_mapped,
-            'confidence': confidence,
-            'probabilities': probabilities,
-            'segmentation_result': results[0]  # Thêm kết quả segmentation
-        }
-    
-    # Không phát hiện được bệnh
-    return {
-        'class': 'healthy',
-        'confidence': 0.0,
-        'probabilities': {cls: 0.0 for cls in CLASS_NAMES}
-    }
 
-
-def _map_yolo_class(yolo_class_name):
-    """Map tên class từ YOLO sang format chuẩn"""
-    yolo_class_lower = yolo_class_name.lower().replace(' ', '_').replace('-', '_')
-    
-    # Mapping các biến thể tên (YOLO model có: Angular_Leaf_Spot, Bean_Rust, Healthy)
-    mappings = {
-        'healthy': 'healthy',
-        'angular_leaf_spot': 'angular_leaf_spot',
-        'bean_rust': 'bean_rust',
-        'angular': 'angular_leaf_spot',
-        'rust': 'bean_rust',
-    }
-    
-    return mappings.get(yolo_class_lower, 'healthy')

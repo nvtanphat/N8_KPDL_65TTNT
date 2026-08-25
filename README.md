@@ -1,17 +1,17 @@
-# 🍃 Bean Leaf Lesions Classification & Instance Segmentation
+# 🍃 Bean Leaf Lesions Classification
 
-Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn thương và phân vùng vị trí bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp các kiến trúc tiên tiến gồm CNN, Vision Transformer (DeiT), Instance Segmentation (YOLOv8-seg) và kiến trúc tự thiết kế **BeanLeafLite** (~0.94M params), đi kèm ứng dụng Web Streamlit.
+Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn thương bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp các kiến trúc CNN gồm **BeanLeafLite** tự thiết kế (~0.94M params), **ShuffleNetV2** (~2.3M), **MobileNetV3-Large** (~3.2M), **EfficientNet-B0** (~5.3M), và **ResNet50** (~25.6M), đi kèm ứng dụng Web Streamlit.
 
 ---
 
 ## 📌 Tính năng Hệ thống
 
-- **Hỗ trợ Đa kiến trúc (Multi-Architecture Ecosystem):**
+- **Hỗ trợ Đa kiến trúc CNN (Multi-Architecture Ecosystem):**
   - **BeanLeafLite (Custom CNN):** Kiến trúc siêu nhẹ tự thiết kế (~0.94M params, Acc **98.50%**).
-  - **MobileNetV3-Large:** Tối ưu hóa suy luận thời gian thực cho thiết bị di động / Edge (Acc **97.74%**).
-  - **DeiT-Small (Vision Transformer):** Cơ chế Self-Attention cho kết quả chẩn đoán chính xác tuyệt đối (Acc **100.00%**).
-  - **EfficientNet-B3:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (Acc **98.50%**).
-  - **YOLOv8-seg (Instance Segmentation):** Khoanh vùng và vẽ mặt nạ tổn thương đốm lá thời gian thực.
+  - **ShuffleNetV2 (x1.0):** Tối ưu hóa xáo trộn kênh đặc trưng cho di động (~2.3M params).
+  - **MobileNetV3-Large:** Tối ưu hóa suy luận thời gian thực cho thiết bị Edge (~3.2M params, Acc **97.74%**).
+  - **EfficientNet-B0:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (~5.3M params).
+  - **ResNet50:** Kiến trúc mạng cuộn sâu tiêu chuẩn với Skip Connections (~25.6M params).
 
 - **Ứng dụng Web Tương tác (Streamlit Web App):**
   - **Single View:** Phân tích ảnh đơn, hiển thị biểu đồ xác suất & khuyến nghị y tế nông nghiệp.
@@ -24,7 +24,7 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn th
 
 **BeanLeafLite** là mô hình mạng nơ-ron cuộn (CNN) được tự thiết kế nhằm tối ưu hóa sự cân bằng giữa độ chính xác và dung lượng tính toán trên các thiết bị di động hoặc môi trường nhúng:
 
-- **Depthwise-Separable Convolutions:** Tách biệt quá trình lọc không gian (spatial) và phối hợp kênh (channel), giúp giảm số lượng tham số xuống chỉ còn **~0.94M** (nhỏ hơn EfficientNet-B3 gấp 14 lần).
+- **Depthwise-Separable Convolutions:** Tách biệt quá trình lọc không gian (spatial) và phối hợp kênh (channel), giúp giảm số lượng tham số xuống chỉ còn **~0.94M** (nhỏ hơn EfficientNet-B0 gấp 5.6 lần).
 - **Residual Skip Connections:** Kết nối tắt giữa các tầng block giúp dòng gradient truyền trực tiếp, tránh hiện tượng suy giảm gradient khi huấn luyện sâu.
 - **Squeeze-and-Excitation (SE) Attention:** Cơ chế chú ý kênh giúp tự động tái trọng số các đặc trưng quan trọng, tập trung vào các chi tiết tổn thương đốm lá nhỏ.
 - **Hiệu năng Thực nghiệm:** Đạt **98.50% Test Accuracy** trên tập kiểm thử độc lập, khẳng định hiệu quả vượt trội của mô hình tự thiết kế.
@@ -34,7 +34,6 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn th
 ## 📊 Tập dữ liệu (Dataset)
 
 - **Bài toán Phân loại (Classification):** [Bean Leaf Lesions Dataset](https://www.kaggle.com/datasets/marquis03/bean-leaf-lesions-classification)
-- **Bài toán Phân vùng (Instance Segmentation):** [Roboflow Universe - Bean Leaf Segmentation](https://universe.roboflow.com/alebachew-m/final_instance_segmentation)
 
 **Các lớp bệnh hại (3 Classes):**
 1. `angular_leaf_spot` — Bệnh đốm góc lá
@@ -46,22 +45,17 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán, phân loại tổn th
 ## 📈 Kết quả Thực nghiệm & Đánh giá (Benchmark & Evaluation)
 
 ### Hiệu năng Mô hình Phân loại (Classification Benchmark)
-Đánh giá độc lập trên tập test độc lập (133 ảnh) dưới cùng **Controlled Benchmark Protocol (384px)**:
+Đánh giá độc lập trên tập test chuẩn (133 ảnh) dưới cùng **Controlled Benchmark Protocol (384px)**:
 
 | Mô hình | Test Accuracy | Tham số (Params) | Phân nhóm Tối ưu & Đặc trưng Kiến trúc |
 |---|:---:|:---:|---|
-| **DeiT-Small** (ViT) | **100.00%** | ~21.8M | Vision Transformer với cơ chế Self-Attention toàn cục |
-| **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | Depthwise-Separable + Residual + SE Channel Attention (siêu nhẹ) |
-| **EfficientNet-B3** | **98.50%** | ~13.0M | Kiến trúc Compound Scaling cân bằng hiệu năng |
+| **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention (siêu nhẹ) |
+| **EfficientNet-B0** | **98.50%** | ~5.3M | Compound Scaling cân bằng hiệu năng & tài nguyên |
 | **MobileNetV3-Large** | **97.74%** | ~3.2M | Kiến trúc tối ưu hóa cho thiết bị di động & Edge Computing |
+| **ShuffleNetV2** (x1.0) | *Cần train* | ~2.3M | Channel Shuffle & Inverted Residual cho di động |
+| **ResNet50** | *Cần train* | ~25.6M | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
 
-### Hiệu năng Mô hình Phân vùng (YOLOv8-seg Instance Segmentation)
-Đo trên tập **test** độc lập (128 ảnh, chưa từng dùng để chọn checkpoint/early-stopping):
 
-| Metric | Giá trị |
-|---|:---:|
-| Box mAP@0.5 | **62.43%** |
-| Mask mAP@0.5 | **59.52%** |
 
 ---
 
@@ -75,17 +69,16 @@ bean-leaf-disease/
 │   └── utils.py                # Pipeline nạp mô hình, suy luận & Grad-CAM
 ├── data/                       # Quản lý tập dữ liệu train/val
 ├── docs/                       # Tài liệu dự án & hình ảnh minh họa
-├── models/                     # Thư mục chứa weights (.pth, .pt)
+├── models/                     # Thư mục chứa weights (.pth)
 ├── outputs/                    # Báo cáo đánh giá định lượng (JSON)
 ├── scripts/
 │   ├── train.py                # Script huấn luyện các mô hình Phân loại
-│   ├── train_yolo.py           # Script huấn luyện mô hình Phân vùng (YOLOv8)
 │   └── evaluate.py             # Script đánh giá offline & xuất metric
 ├── src/bean_leaf/              # Core Library Package
 │   ├── config.py               # Single Source of Truth cho siêu tham số
 │   ├── data/                   # DataLoaders & Augmentations
 │   ├── evaluation/             # Đánh giá chỉ số & Grad-CAM
-│   ├── models/                 # Kiến trúc mô hình (PyTorch & Ultralytics)
+│   ├── models/                 # Kiến trúc mô hình (PyTorch & timm)
 │   └── training/               # Vòng lặp huấn luyện & AMP Mixed Precision
 └── tests/                      # Bộ unit tests tự động (pytest)
 ```
@@ -121,22 +114,10 @@ streamlit run app/streamlit_app.py
 # 1. Huấn luyện toàn bộ các mô hình phân loại (data/train, data/val)
 python scripts/train.py --data_dir "./data" --model all
 
-# 2. Huấn luyện mô hình phân vùng YOLOv8 - dataset segmentation (data.yaml) không nằm
-#    trong data/ (đó là dataset classification), phải tải riêng từ Roboflow trước:
-pip install roboflow
-python -c "
-from roboflow import Roboflow
-rf = Roboflow(api_key='YOUR_ROBOFLOW_API_KEY')
-project = rf.workspace('alebachew-m').project('final_instance_segmentation')
-dataset = project.version(1).download('yolov8')
-print(dataset.location)
-"
-python scripts/train_yolo.py --data_yaml "<dataset.location>/data.yaml" --epochs 50
-
-# 3. Đánh giá offline 4 model classification và lưu metric ra JSON
+# 2. Đánh giá offline các model classification và lưu metric ra JSON
 python scripts/evaluate.py
 
-# 4. Chạy Unit Tests
+# 3. Chạy Unit Tests
 pytest -v
 ```
 
@@ -147,4 +128,4 @@ pytest -v
 - **Nguyễn Văn Tấn Phát**
 - **Nguyễn Hoàng Lộc**
 
-Trân trọng cảm ơn cộng đồng mã nguồn mở **PyTorch**, **Timm**, **Ultralytics**, và **Streamlit** đã hỗ trợ công cụ và nền tảng cho nghiên cứu này.
+Trân trọng cảm ơn cộng đồng mã nguồn mở **PyTorch**, **Timm**, và **Streamlit** đã hỗ trợ công cụ và nền tảng cho nghiên cứu này.

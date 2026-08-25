@@ -177,10 +177,6 @@ def load_cached_model(model_type):
 
 
 def show_result(result):
-    if 'segmentation_result' in result and result['segmentation_result']:
-        img = result['segmentation_result'].plot()[:, :, ::-1]
-        st.image(img, caption="Segmentation", use_column_width=True)
-    
     st.dataframe(pd.DataFrame([{
         'Loại': CLASS_LABELS.get(result['class'], result['class']),
         'Confidence': f"{result['confidence']:.1f}%"

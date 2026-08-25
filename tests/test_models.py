@@ -1,7 +1,7 @@
 """Smoke tests: mỗi kiến trúc phải khởi tạo được và forward pass đúng shape output."""
 import torch
 
-from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, deit
+from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, resnet50, shufflenetv2
 
 NUM_CLASSES = 3
 
@@ -29,6 +29,11 @@ def test_mobilenetv3_forward():
     _assert_forward_shape(model, img_size=mobilenetv3.IMG_SIZE)
 
 
-def test_deit_forward():
-    model = deit.create_deit_model(NUM_CLASSES, pretrained=False)
-    _assert_forward_shape(model, img_size=deit.IMG_SIZE)
+def test_resnet50_forward():
+    model = resnet50.create_resnet50_model(NUM_CLASSES, pretrained=False)
+    _assert_forward_shape(model, img_size=resnet50.IMG_SIZE)
+
+
+def test_shufflenetv2_forward():
+    model = shufflenetv2.create_shufflenetv2_model(NUM_CLASSES, pretrained=False)
+    _assert_forward_shape(model, img_size=shufflenetv2.IMG_SIZE)

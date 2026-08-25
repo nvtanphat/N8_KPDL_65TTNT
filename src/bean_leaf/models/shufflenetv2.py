@@ -1,6 +1,6 @@
 """
-EfficientNet-B0 Model for Bean Leaf Classification
-PyTorch Implementation with Transfer Learning
+ShuffleNetV2 Model for Bean Leaf Classification
+PyTorch Implementation with Transfer Learning (Lightweight Mobile CNN)
 """
 
 import torch
@@ -12,7 +12,6 @@ from bean_leaf.config import DEFAULT_CONFIG
 from bean_leaf.training.amp import autocast_context
 
 # ===================== CONFIGURATION =====================
-# Đọc từ config.py trung tâm (Single Source of Truth) - đổi DEFAULT_CONFIG áp dụng ngay ở đây.
 NUM_CLASSES = DEFAULT_CONFIG.num_classes
 IMG_SIZE = DEFAULT_CONFIG.img_size
 BATCH_SIZE = DEFAULT_CONFIG.batch_size
@@ -28,7 +27,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # ===================== TRAINING FUNCTIONS =====================
 def train_one_epoch(model, loader, criterion, optimizer, device, scaler=None):
-    """Train model for one epoch (AMP nếu có scaler - xem bean_leaf.training.amp)"""
+    """Train model for one epoch (AMP nếu có scaler)"""
     model.train()
     running_loss = 0.0
     correct = 0
@@ -88,18 +87,14 @@ def validate(model, loader, criterion, device):
 
 
 # ===================== MODEL CREATION =====================
-def create_efficientnet_model(num_classes=NUM_CLASSES, pretrained=True):
-    """Create EfficientNet-B0 model with custom classifier"""
-    weights = models.EfficientNet_B0_Weights.DEFAULT if pretrained else None
-    model = models.efficientnet_b0(weights=weights)
+def create_shufflenetv2_model(num_classes=NUM_CLASSES, pretrained=True):
+    """Create ShuffleNetV2 (x1.0) model with custom classifier"""
+    weights = models.ShuffleNet_V2_X1_0_Weights.DEFAULT if pretrained else None
+    model = models.shufflenet_v2_x1_0(weights=weights)
 
-    # Full fine-tune (không đóng băng backbone) - torchvision pretrained model
-    # đã có requires_grad=True mặc định cho mọi param.
-
-    # Replace classifier
-    in_features = model.classifier[1].in_features
-    model.classifier = nn.Sequential(
-        nn.Dropout(p=0.3, inplace=True),
+    in_features = model.fc.in_features
+    model.fc = nn.Sequential(
+        nn.Dropout(p=0.2),
         nn.Linear(in_features, num_classes)
     )
     

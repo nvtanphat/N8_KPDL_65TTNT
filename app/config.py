@@ -68,46 +68,46 @@ DISEASE_INFO = {
     }
 }
 
-# Cấu hình model - 5 models từ folder models/
+# Cấu hình model - 5 models CNN từ folder models/
 MODELS = {
-    'MobileNetV3': {
-        'file': 'best_mobilenetv3.pth',
-        'img_size': (384, 384),
-        'framework': 'PyTorch',
-        'architecture': 'mobilenetv3',
-        'description': '⚡ [Mô hình Nhẹ Nhất - Edge/Mobile] MobileNetV3-Large siêu nhẹ (~3.2M params), suy luận tức thì (~mấy ms/ảnh), tối ưu cho thiết bị di động & nông dân ngoài thực địa.',
-        'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
-    },
     'BeanLeafLite_Custom': {
         'file': 'best_beanleaflite.pth',
         'img_size': (384, 384),
         'framework': 'PyTorch',
         'architecture': 'bean_leaf_lite',
-        'description': '🛠️ [Mô hình Custom Đổi Mới] BeanLeafLite: CNN tự thiết kế từ đầu (from scratch) với Depthwise-Separable + Residual + SE Attention, ~1M tham số.',
+        'description': '🛠️ [Mô hình Custom Đổi Mới] BeanLeafLite: CNN tự thiết kế từ đầu (from scratch) với Depthwise-Separable + Residual + SE Attention, ~0.94M tham số.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
-    'DeiT_Transformer': {
-        'file': 'best_deit.pth',
+    'ShuffleNetV2': {
+        'file': 'best_shufflenetv2.pth',
         'img_size': (384, 384),
-        'framework': 'PyTorch/timm',
-        'architecture': 'deit',
-        'description': '🥇 [Mô hình Độ Chính Xác Cao Nhất - SOTA 99.25%] Vision Transformer (DeiT-Small) khai thác cơ chế Self-Attention cho kết quả chẩn đoán chính xác tuyệt đối trên Server/Cloud.',
+        'framework': 'PyTorch',
+        'architecture': 'shufflenetv2',
+        'description': '⚡ [Mô hình Siêu Nhẹ] ShuffleNetV2 (x1.0): Tối ưu hóa xáo trộn kênh đặc trưng (Channel Shuffle), ~2.3M tham số cho thiết bị di động.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
-    'EfficientNet_B3': {
-        'file': 'best_efficientnet.pth',
+    'MobileNetV3': {
+        'file': 'best_mobilenetv3.pth',
+        'img_size': (384, 384),
+        'framework': 'PyTorch',
+        'architecture': 'mobilenetv3',
+        'description': '📱 [Mô hình Edge/Mobile] MobileNetV3-Large siêu nhẹ (~3.2M params), suy luận tốc độ cao trên thiết bị nông dân ngoài thực địa.',
+        'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
+    },
+    'EfficientNet_B0': {
+        'file': 'best_efficientnet_b0.pth',
         'img_size': (384, 384),
         'framework': 'PyTorch',
         'architecture': 'efficientnet',
-        'description': '⚖️ [Mô hình Cân Bằng Nhất] EfficientNet-B3 fine-tuned từ ImageNet, cân bằng lý tưởng giữa khả năng tổng quát hóa và tài nguyên tính toán.',
+        'description': '⚖️ [Mô hình Cân Bằng] EfficientNet-B0 fine-tuned từ ImageNet (~5.3M params), tối ưu giữa dung lượng và độ chính xác.',
         'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     },
-    'YOLO_Segmentation': {
-        'file': 'best_yolov8_segmentation.pt',
-        'img_size': (640, 640),
-        'framework': 'Ultralytics',
-        'architecture': 'yolov8',
-        'description': '🎯 [Mô hình Phân Vùng Ổ Bệnh] YOLOv8-seg cho Instance Segmentation, phát hiện vị trí ổ bệnh và vẽ mặt nạ (polygon mask) khoanh vùng trực quan.',
-        'dataset': 'Bean Leaf Segmentation Dataset (Roboflow)',
+    'ResNet50': {
+        'file': 'best_resnet50.pth',
+        'img_size': (384, 384),
+        'framework': 'PyTorch',
+        'architecture': 'resnet50',
+        'description': '🏛️ [Mô hình Residual Tiêu Chuẩn] ResNet50 (~25.6M params), kiến trúc mạng cuộn sâu với kết nối tắt (Skip Connections).',
+        'dataset': 'Bean Leaf Dataset - 3 classes (1,296 images)',
     }
 }

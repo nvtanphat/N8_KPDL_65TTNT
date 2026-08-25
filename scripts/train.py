@@ -1,21 +1,6 @@
 """
 Bean Leaf Classification - Main Training Script
-Hỗ trợ 4 model PyTorch: VGG (custom), EfficientNet-B3, MobileNetV3, DeiT
-
-Hyperparameter dùng chung (img_size, batch_size, epochs, lr, weight_decay, patience,
-label_smoothing) đọc từ bean_leaf.config.DEFAULT_CONFIG (Single Source of Truth). Cả 4
-model dùng chung 1 vòng lặp huấn luyện duy nhất (for epoch ... + EarlyStopping); chỉ
-VGG (OneCycleLR step theo batch + gradient clipping) và DeiT (warmup/EMA) cần nhánh
-riêng cho cơ chế đặc thù kiến trúc không có tương đương ở model khác. EfficientNet-B3
-và MobileNetV3 dùng y hệt 1 recipe (AdamW + CosineAnnealingLR, full fine-tune từ đầu)
-nên đi chung 1 nhánh - đảm bảo so sánh công bằng giữa các kiến trúc.
-
-Train/Val/Test: thư mục train được tách thêm 1 lần nữa thành train_subset +
-internal_val_subset (stratified) để early-stopping/chọn checkpoint lúc train. Thư mục
-val gốc (--data_dir/val) giữ nguyên làm TEST SET độc lập - không tham gia bất kỳ quyết
-định nào lúc train, chỉ đánh giá đúng 1 lần sau khi train xong. Dùng val vừa để
-early-stop vừa để báo cáo kết quả sẽ cho con số thiên vị lạc quan (đã chọn đúng
-checkpoint tốt nhất trên chính tập đó).
+Hỗ trợ 3 model PyTorch: VGG (custom), EfficientNet-B3, MobileNetV3
 """
 
 import sys
@@ -40,10 +25,10 @@ from bean_leaf.training.amp import get_scaler
 from bean_leaf.training.early_stopping import EarlyStopping
 from bean_leaf.utils.paths import get_default_output_dir
 
-from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, deit
+from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, resnet50, shufflenetv2
 
 NUM_CLASSES = DEFAULT_CONFIG.num_classes
-ALL_MODELS = ['vgg', 'efficientnet', 'mobilenet', 'deit']
+ALL_MODELS = ['vgg', 'efficientnet', 'mobilenet', 'resnet50', 'shufflenetv2']
 device = bean_leaf_lite.device
 
 # Mỗi model: module chứa config + factory, và interpolation phù hợp với kiến trúc
@@ -51,7 +36,8 @@ MODEL_REGISTRY = {
     'vgg': {'module': bean_leaf_lite, 'create': bean_leaf_lite.create_lite_model, 'interpolation': InterpolationMode.BILINEAR},
     'efficientnet': {'module': efficientnet, 'create': efficientnet.create_efficientnet_model, 'interpolation': InterpolationMode.BILINEAR},
     'mobilenet': {'module': mobilenetv3, 'create': mobilenetv3.create_mobilenetv3_model, 'interpolation': InterpolationMode.BILINEAR},
-    'deit': {'module': deit, 'create': deit.create_deit_model, 'interpolation': InterpolationMode.BICUBIC},
+    'resnet50': {'module': resnet50, 'create': resnet50.create_resnet50_model, 'interpolation': InterpolationMode.BILINEAR},
+    'shufflenetv2': {'module': shufflenetv2, 'create': shufflenetv2.create_shufflenetv2_model, 'interpolation': InterpolationMode.BILINEAR},
 }
 
 
@@ -94,18 +80,13 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
     # (thực tế đã CUDA OOM với EfficientNet-B3 384px/batch32 khi train thuần fp32).
     scaler = get_scaler(device)
 
-    if model_name == 'deit':
-        criterion, optimizer, scheduler, model_ema = deit.get_optimizer_scheduler(model, train_loader, epochs)
-        train_fn, val_fn = deit.train_one_epoch, deit.validate
-    elif model_name == 'vgg':
+    if model_name == 'vgg':
         criterion, optimizer, scheduler = bean_leaf_lite.get_optimizer_scheduler(model, train_loader, epochs)
         train_fn, val_fn = bean_leaf_lite.train_one_epoch, bean_leaf_lite.validate
-        model_ema = None
     else:  # efficientnet & mobilenet: cùng 1 recipe (AdamW + CosineAnnealingLR, full fine-tune)
         module = MODEL_REGISTRY[model_name]['module']
         criterion, optimizer, scheduler = module.get_optimizer_scheduler(model, epochs)
         train_fn, val_fn = module.train_one_epoch, module.validate
-        model_ema = None
 
     early_stopping = EarlyStopping(patience=DEFAULT_CONFIG.patience, verbose=True, path=model_path)
 
@@ -113,18 +94,7 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
         print(f"\nEpoch {epoch + 1}/{epochs}")
         print("-" * 40)
 
-        if model_name == 'deit':
-            train_loss, train_acc = train_fn(model, model_ema, train_loader, criterion, optimizer, scheduler, device, scaler)
-            # Với EMA_DECAY cao (0.9998) + ít epoch, EMA hội tụ chậm hơn hẳn model gốc
-            # (thực tế đo được: EMA kẹt ~35% trong khi model gốc đạt ~99% cùng lúc) - phải so
-            # sánh cả 2 và lấy bên thắng, không thể mặc định luôn dùng EMA để chấm điểm/lưu.
-            val_loss, val_acc, _, _ = val_fn(model, internal_val_loader, criterion, device)
-            ema_val_loss, ema_val_acc, _, _ = val_fn(model_ema.module, internal_val_loader, criterion, device)
-            if ema_val_acc >= val_acc:
-                best_of_epoch, val_loss, val_acc = model_ema.module, ema_val_loss, ema_val_acc
-            else:
-                best_of_epoch = model
-        elif model_name == 'vgg':
+        if model_name == 'vgg':
             # OneCycleLR đã được step theo từng batch bên trong train_fn, không step lại ở đây
             train_loss, train_acc = train_fn(model, train_loader, criterion, optimizer, scheduler, device, scaler)
             val_loss, val_acc, _, _ = val_fn(model, internal_val_loader, criterion, device)
@@ -136,8 +106,7 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
         print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
         print(f"[Internal Val] Loss: {val_loss:.4f} | Acc: {val_acc:.4f}")
 
-        # DeiT: lưu đúng model (raw hoặc EMA) vừa thắng ở epoch này
-        early_stopping(val_loss, best_of_epoch if model_name == 'deit' else model)
+        early_stopping(val_loss, model)
         if early_stopping.early_stop:
             print("\nEarly stopping triggered!")
             break

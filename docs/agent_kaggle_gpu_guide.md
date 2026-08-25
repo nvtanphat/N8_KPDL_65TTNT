@@ -20,8 +20,8 @@ Tài liệu này tổng hợp các **bài học kinh nghiệm và quy chuẩn k�
 * **Đánh giá Offline (Offline Evaluation):** Thực thi inference đánh giá định lượng độc lập và tải giao diện Web cho người dùng trực tiếp trên máy local.
 
 ### B. Vai Trò Của Kaggle GPU Cloud
-* **Worker Huấn luyện Tốc độ cao:** Sử dụng GPU P100/T4 miễn phí trên Kaggle để chạy các job huấn luyện nhiều epoch (PyTorch, YOLOv8, Transformers) mà không làm quá tải tài nguyên máy local.
-* **Đồng bộ Artifacts:** Sau khi job huấn luyện trên Cloud hoàn tất (`COMPLETE`), tiến hành tải weights mô hình đã tối ưu (`best_*.pth`, `best_*.pt`) về thư mục `models/` tại Local.
+* **Worker Huấn luyện Tốc độ cao:** Sử dụng GPU P100/T4 miễn phí trên Kaggle để chạy các job huấn luyện nhiều epoch (PyTorch, Transformers) mà không làm quá tải tài nguyên máy local.
+* **Đồng bộ Artifacts:** Sau khi job huấn luyện trên Cloud hoàn tất (`COMPLETE`), tiến hành tải weights mô hình đã tối ưu (`best_*.pth`) về thư mục `models/` tại Local.
 
 ---
 

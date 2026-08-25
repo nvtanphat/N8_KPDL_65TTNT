@@ -8,10 +8,10 @@ Thư mục này chứa các file trọng số mô hình đã qua huấn luyện 
 
 | Mô hình AI | Kiến trúc | Tên file Checkpoint trong `models/` |
 |---|---|---|
-| **MobileNetV3-Large** | PyTorch MobileNetV3 | `best_mobilenetv3.pth` |
 | **BeanLeafLite** | Custom CNN (Depthwise + Residual + SE) | `best_beanleaflite.pth` |
-| **DeiT-Small** | Vision Transformer (PyTorch / Timm) | `best_deit.pth` |
-| **EfficientNet-B3** | PyTorch EfficientNet | `best_efficientnet.pth` |
-| **YOLOv8-seg** | Ultralytics Instance Segmentation | `best_yolov8_segmentation.pt` |
+| **ShuffleNetV2** | PyTorch ShuffleNetV2 (x1.0) | `best_shufflenetv2.pth` |
+| **MobileNetV3-Large** | PyTorch MobileNetV3 | `best_mobilenetv3.pth` |
+| **EfficientNet-B0** | PyTorch EfficientNet-B0 | `best_efficientnet_b0.pth` |
+| **ResNet50** | PyTorch ResNet50 | `best_resnet50.pth` |
 
 > 📌 **Lưu ý:** Tên các file trọng số trên phải khớp 100% với định nghĩa cấu hình tại [`app/config.py`](../app/config.py) (`MODELS[...]['file']`).
