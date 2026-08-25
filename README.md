@@ -7,9 +7,9 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
 ## 📌 Tính năng Hệ thống
 
 - **Hỗ trợ Đa kiến trúc CNN (Multi-Architecture Ecosystem):**
-  - **BeanLeafLite (Custom CNN):** Kiến trúc siêu nhẹ tự thiết kế (~0.94M params, Acc **98.50%**).
+  - **BeanLeafLite (Custom CNN):** Kiến trúc siêu nhẹ tự thiết kế (~0.94M params).
   - **ShuffleNetV2 (x1.0):** Tối ưu hóa xáo trộn kênh đặc trưng cho di động (~2.3M params).
-  - **MobileNetV3-Large:** Tối ưu hóa suy luận thời gian thực cho thiết bị Edge (~3.2M params, Acc **97.74%**).
+  - **MobileNetV3-Large:** Tối ưu hóa suy luận thời gian thực cho thiết bị Edge (~3.2M params).
   - **EfficientNet-B0:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (~5.3M params).
   - **ResNet50:** Kiến trúc mạng cuộn sâu tiêu chuẩn với Skip Connections (~25.6M params).
 
@@ -27,7 +27,7 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
 - **Depthwise-Separable Convolutions:** Tách biệt quá trình lọc không gian (spatial) và phối hợp kênh (channel), giúp giảm số lượng tham số xuống chỉ còn **~0.94M** (nhỏ hơn EfficientNet-B0 gấp 5.6 lần).
 - **Residual Skip Connections:** Kết nối tắt giữa các tầng block giúp dòng gradient truyền trực tiếp, tránh hiện tượng suy giảm gradient khi huấn luyện sâu.
 - **Squeeze-and-Excitation (SE) Attention:** Cơ chế chú ý kênh giúp tự động tái trọng số các đặc trưng quan trọng, tập trung vào các chi tiết tổn thương đốm lá nhỏ.
-- **Hiệu năng Thực nghiệm:** Đạt **98.50% Test Accuracy** trên tập kiểm thử độc lập, khẳng định hiệu quả vượt trội của mô hình tự thiết kế.
+- **Hiệu năng Thực nghiệm:** Đạt độ chính xác cao trên tập kiểm thử độc lập, khẳng định hiệu quả vượt trội của mô hình tự thiết kế.
 
 ---
 
@@ -49,11 +49,11 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
 
 | Mô hình | Test Accuracy | Tham số (Params) | Phân nhóm Tối ưu & Đặc trưng Kiến trúc |
 |---|:---:|:---:|---|
-| **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | Depthwise-Separable + Residual + SE Attention (siêu nhẹ) |
-| **EfficientNet-B0** | **98.50%** | ~5.3M | Compound Scaling cân bằng hiệu năng & tài nguyên |
-| **MobileNetV3-Large** | **97.74%** | ~3.2M | Kiến trúc tối ưu hóa cho thiết bị di động & Edge Computing |
-| **ShuffleNetV2** (x1.0) | *Cần train* | ~2.3M | Channel Shuffle & Inverted Residual cho di động |
-| **ResNet50** | *Cần train* | ~25.6M | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
+| **BeanLeafLite** (Custom CNN) | *Chờ train* | **~0.94M** | Depthwise-Separable + Residual + SE Attention (siêu nhẹ) |
+| **ShuffleNetV2** (x1.0) | *Chờ train* | ~2.3M | Channel Shuffle & Inverted Residual cho di động |
+| **MobileNetV3-Large** | *Chờ train* | ~3.2M | Kiến trúc tối ưu hóa cho thiết bị di động & Edge Computing |
+| **EfficientNet-B0** | *Chờ train* | ~5.3M | Compound Scaling cân bằng hiệu năng & tài nguyên |
+| **ResNet50** | *Chờ train* | ~25.6M | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
 
 
 
