@@ -38,8 +38,7 @@ logs/
 
 # Kaggle GPU cloud job scripts - chỉ dùng local, không push lên git nữa
 # (chuyển sang train trực tiếp local, xem README mục Training)
-kaggle_job/
-kaggle_job_yolo/
+kaggle_job*/
 
 # OS / editor
 .DS_Store
