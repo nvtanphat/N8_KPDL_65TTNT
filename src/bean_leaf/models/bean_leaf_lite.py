@@ -233,7 +233,7 @@ def create_lite_model(num_classes=NUM_CLASSES):
     return model
 
 
-def get_optimizer_scheduler(model, num_epochs=NUM_EPOCHS):
+def get_optimizer_scheduler(model, num_epochs=NUM_EPOCHS, lr=None):
     """
     Create optimizer and scheduler - y hệt 4 model còn lại (AdamW + CosineAnnealingLR).
 
@@ -242,7 +242,7 @@ def get_optimizer_scheduler(model, num_epochs=NUM_EPOCHS):
     kiến trúc mà là so sánh "model nào được tune riêng". Đã gỡ để mọi model dùng chung 1 recipe.
     """
     criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING)
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    optimizer = optim.AdamW(model.parameters(), lr=lr or LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
     return criterion, optimizer, scheduler
 

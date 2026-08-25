@@ -68,10 +68,11 @@ def _evaluate_on_test(model_name, model, test_loader, device):
 
 # ===================== TRAINING FUNCTIONS =====================
 def train_model(model_name, train_loader, internal_val_loader, test_loader, model, output_dir,
-                run_dir=None):
+                run_dir=None, lr=None):
     """
     Train a specific model, skip nếu checkpoint đã tồn tại.
     run_dir: thư mục checkpoint riêng cho 1 fold khi chạy k-fold (mặc định <output_dir>/<model_name>).
+    lr: learning rate ghi đè (từ --lr_sweep); None = dùng DEFAULT_CONFIG.learning_rate.
     Trả về (model, stats) với stats = {test_acc, test_loss, epochs_run}.
     """
     model_output_dir = run_dir or os.path.join(output_dir, model_name)
@@ -97,7 +98,7 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
     # step scheduler (1 lần/epoch), cùng tiêu chí lưu checkpoint. Không còn nhánh riêng cho
     # model nào - đó là điều kiện để bảng benchmark so sánh kiến trúc chứ không so sánh recipe.
     module = MODEL_REGISTRY[model_name]['module']
-    criterion, optimizer, scheduler = module.get_optimizer_scheduler(model, epochs)
+    criterion, optimizer, scheduler = module.get_optimizer_scheduler(model, epochs, lr=lr)
     train_fn, val_fn = module.train_one_epoch, module.validate
 
     # patience=0 -> đặt ngưỡng lớn hơn tổng số epoch: EarlyStopping không bao giờ kích hoạt
@@ -133,8 +134,65 @@ def train_model(model_name, train_loader, internal_val_loader, test_loader, mode
     return model, {'test_acc': test_acc, 'test_loss': test_loss, 'epochs_run': epochs_run}
 
 
+# ===================== LEARNING-RATE SWEEP =====================
+def _train_for_sweep(model_name, train_loader, internal_val_loader, lr, epochs, seed):
+    """Train ngắn 1 lần với 1 learning rate, trả về (best_val_acc, val_loss tại epoch đó)."""
+    set_seed(seed)
+    model = MODEL_REGISTRY[model_name]['create'](NUM_CLASSES).to(device)
+    module = MODEL_REGISTRY[model_name]['module']
+    criterion, optimizer, scheduler = module.get_optimizer_scheduler(model, epochs, lr=lr)
+    scaler = get_scaler(device)
+
+    best = (-1.0, float('inf'))  # (val_acc cao nhất, val_loss tại đúng epoch đó)
+    for epoch in range(epochs):
+        module.train_one_epoch(model, train_loader, criterion, optimizer, device, scaler)
+        result = module.validate(model, internal_val_loader, criterion, device)
+        val_loss, val_acc = result[0], result[1]
+        scheduler.step()
+        if (val_acc, -val_loss) > (best[0], -best[1]):
+            best = (val_acc, val_loss)
+        print(f"    epoch {epoch + 1}/{epochs}: val_loss={val_loss:.4f} val_acc={val_acc:.4f}",
+              flush=True)
+    return best
+
+
+def sweep_learning_rate(model_name, train_loader, internal_val_loader, lrs, epochs, seed):
+    """
+    Quét learning rate cho 1 model: mỗi LR train lại từ đầu trên CÙNG một split, CÙNG số epoch,
+    CÙNG seed. Chọn LR theo internal-val accuracy cao nhất (tie-break bằng val_loss thấp hơn).
+
+    Vì sao cần: ép mọi model dùng chung lr=3e-4 nghe có vẻ công bằng nhưng không phải - 3e-4 là
+    LR kinh điển để fine-tune model pretrained, quá nhỏ để train from-scratch. Thực nghiệm đã
+    cho thấy điều đó: khi gỡ OneCycleLR(max_lr=2e-3) riêng của BeanLeafLite để về recipe chung,
+    test acc tụt từ 0.9549 xuống 0.8977. Công bằng đúng nghĩa là mọi model được thử CÙNG SỐ LẦN
+    trên cùng một lưới LR, rồi so kết quả tốt nhất của từng model.
+
+    Test set (val_dir) không tham gia bước này - chọn LR chỉ dựa trên internal-val.
+    """
+    print()
+    print("=" * 60)
+    print(f"[SWEEP] {model_name}: quét {len(lrs)} learning rate x {epochs} epoch")
+    print("=" * 60)
+
+    results = []
+    for lr in lrs:
+        print()
+        print(f"[SWEEP] {model_name} lr={lr:g}")
+        val_acc, val_loss = _train_for_sweep(model_name, train_loader, internal_val_loader,
+                                             lr, epochs, seed)
+        results.append({'lr': lr, 'val_acc': val_acc, 'val_loss': val_loss})
+        print(f"  -> lr={lr:g}: best val_acc={val_acc:.4f} (val_loss={val_loss:.4f})", flush=True)
+
+    best = max(results, key=lambda r: (r['val_acc'], -r['val_loss']))
+    print()
+    print(f"[SWEEP] {model_name}: chọn lr={best['lr']:g} "
+          f"(val_acc={best['val_acc']:.4f})")
+    return best['lr'], results
+
+
 # ===================== K-FOLD CROSS-VALIDATION =====================
-def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
+def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed,
+              lr_grid=None, sweep_epochs=15):
     """
     Train model_name n_splits lần trên các fold khác nhau của train_dir, mỗi fold 1 seed riêng.
 
@@ -159,10 +217,18 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
           f"{complexity['flops']/1e9:.2f} GFLOPs ({complexity['macs']/1e9:.2f} GMACs) "
           f"@ {DEFAULT_CONFIG.img_size}px")
 
-    loaders = get_kfold_loaders(train_dir, val_dir, train_tf, val_tf, DEFAULT_CONFIG.batch_size,
-                                n_splits=n_splits, seed=seed)
+    # Materialize để dùng lại đúng split của fold 1 cho bước sweep - mọi model và mọi LR
+    # phải thấy cùng một tập dữ liệu thì việc chọn LR mới so sánh được với nhau.
+    folds = list(get_kfold_loaders(train_dir, val_dir, train_tf, val_tf, DEFAULT_CONFIG.batch_size,
+                                   n_splits=n_splits, seed=seed))
 
-    for fold, train_loader, internal_val_loader, test_loader, _internal_val_idx in loaders:
+    lr, sweep_results = None, None
+    if lr_grid:
+        _, sweep_train, sweep_val, _, _ = folds[0]
+        lr, sweep_results = sweep_learning_rate(model_name, sweep_train, sweep_val,
+                                                lr_grid, sweep_epochs, seed)
+
+    for fold, train_loader, internal_val_loader, test_loader, _internal_val_idx in folds:
         # Seed lệch theo fold: mỗi fold vẫn tái lập được, nhưng khởi tạo trọng số khác nhau nên
         # std giữa các fold phản ánh cả dao động do split lẫn do khởi tạo - đúng thứ cần đo.
         fold_seed = seed + fold
@@ -176,7 +242,7 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
         model = MODEL_REGISTRY[model_name]['create'](NUM_CLASSES).to(device)
         run_dir = os.path.join(output_dir, model_name, f'fold{fold}')
         model, stats = train_model(model_name, train_loader, internal_val_loader, test_loader,
-                                   model, output_dir, run_dir=run_dir)
+                                   model, output_dir, run_dir=run_dir, lr=lr)
 
         y_true, y_pred = collect_predictions(model, internal_val_loader, device)
         oof_true.append(y_true)
@@ -202,6 +268,9 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
         'num_epochs': DEFAULT_CONFIG.num_epochs,
         'patience': DEFAULT_CONFIG.patience,
         'complexity': complexity,
+        'learning_rate': lr or DEFAULT_CONFIG.learning_rate,
+        'lr_sweep': sweep_results,
+        'sweep_epochs': sweep_epochs if lr_grid else None,
         'folds': fold_results,
         'test_acc_mean': float(statistics.mean(test_accs)),
         # stdev cần >=2 mẫu; n_splits luôn >=2 nên không cần guard, nhưng để rõ ý đồ vẫn ghi chú:
@@ -231,6 +300,11 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed):
           f"{summary['test_acc_mean']:.4f} ± {summary['test_acc_std']:.4f} "
           f"(min {summary['test_acc_min']:.4f}, max {summary['test_acc_max']:.4f})")
     print(f"  Out-of-fold acc (toàn bộ train_dir, {summary['oof_n']} ảnh): {summary['oof_acc']:.4f}")
+    if sweep_results:
+        grid = ', '.join(f"{r['lr']:g}" for r in sweep_results)
+        print(f"  Learning rate: {summary['learning_rate']:g} (chọn từ lưới [{grid}])")
+    else:
+        print(f"  Learning rate: {summary['learning_rate']:g} (mặc định, không sweep)")
     print(f"  Chi phí: {complexity['params']/1e6:.2f}M params | "
           f"{complexity['flops']/1e9:.2f} GFLOPs @ {DEFAULT_CONFIG.img_size}px")
     print()
@@ -260,7 +334,20 @@ def main():
                              '1 lần. Mỗi fold train lại từ đầu với seed riêng, cho ra mean±std '
                              'của test acc + out-of-fold acc trên toàn bộ train_dir. K=0 (mặc '
                              'định) = giữ nguyên cách chạy cũ.')
+    parser.add_argument('--lr_sweep', type=str, default='', metavar='LR1,LR2,...',
+                        help='Quét learning rate trước khi chạy k-fold, vd "1e-4,3e-4,1e-3,3e-3". '
+                             'Mỗi model được thử CÙNG SỐ LẦN trên cùng lưới này, chọn theo '
+                             'internal-val (test set không tham gia). Ép mọi model dùng chung 1 LR '
+                             'không phải là công bằng: 3e-4 hợp để fine-tune model pretrained '
+                             'nhưng quá nhỏ với model train from-scratch.')
+    parser.add_argument('--sweep_epochs', type=int, default=15,
+                        help='Số epoch cho mỗi lần thử trong sweep (mặc định 15). Ngân sách rút '
+                             'gọn để sweep không đắt hơn chính k-fold, áp dụng như nhau cho mọi model.')
     args = parser.parse_args()
+
+    lr_grid = [float(x) for x in args.lr_sweep.split(',') if x.strip()] if args.lr_sweep else None
+    if lr_grid and not args.kfold:
+        parser.error('--lr_sweep cần đi kèm --kfold (LR chọn ra được dùng cho các fold).')
 
     if args.kfold == 1 or args.kfold < 0:
         parser.error('--kfold phải >= 2 (hoặc 0 để tắt); 1 fold không tính được std.')
@@ -283,7 +370,8 @@ def main():
 
     if args.kfold:
         for model_name in models_to_train:
-            run_kfold(model_name, train_dir, val_dir, output_dir, args.kfold, args.seed)
+            run_kfold(model_name, train_dir, val_dir, output_dir, args.kfold, args.seed,
+                      lr_grid=lr_grid, sweep_epochs=args.sweep_epochs)
         return
 
     # Chạy thường: 1 holdout 85/15, seed cố định để lần chạy sau tái lập được.
