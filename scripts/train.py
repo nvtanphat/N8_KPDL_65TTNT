@@ -222,6 +222,7 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed,
     folds = list(get_kfold_loaders(train_dir, val_dir, train_tf, val_tf, DEFAULT_CONFIG.batch_size,
                                    n_splits=n_splits, seed=seed))
 
+    oof_index = []
     lr, sweep_results = None, None
     if lr_grid:
         _, sweep_train, sweep_val, _, _ = folds[0]
@@ -247,6 +248,7 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed,
         y_true, y_pred = collect_predictions(model, internal_val_loader, device)
         oof_true.append(y_true)
         oof_pred.append(y_pred)
+        oof_index.append(_internal_val_idx)
         fold_acc = float((y_true == y_pred).mean())
 
         stats.update({'fold': fold, 'seed': fold_seed, 'oof_acc': fold_acc,
@@ -255,8 +257,11 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed,
         print(f"[FOLD {fold}] test_acc={stats['test_acc']:.4f} | oof_acc={fold_acc:.4f} "
               f"| epochs={stats['epochs_run']}")
 
-    oof_true = np.concatenate(oof_true)
-    oof_pred = np.concatenate(oof_pred)
+    # Sắp lại theo index gốc của ImageFolder: các fold trả về theo thứ tự fold, mà muốn so
+    # sánh có cặp giữa 2 model thì phần tử thứ i của 2 mảng phải là cùng một tấm ảnh.
+    order = np.argsort(np.concatenate(oof_index))
+    oof_true = np.concatenate(oof_true)[order]
+    oof_pred = np.concatenate(oof_pred)[order]
     test_accs = [r['test_acc'] for r in fold_results]
 
     summary = {
@@ -281,6 +286,12 @@ def run_kfold(model_name, train_dir, val_dir, output_dir, n_splits, seed,
         'oof_acc': float((oof_true == oof_pred).mean()),
         'oof_n': int(len(oof_true)),
         'oof_confusion_matrix': confusion_matrix(oof_true, oof_pred).tolist(),
+        # Nhãn thật + dự đoán của TỪNG ảnh, xếp theo index gốc của ImageFolder(train_dir).
+        # Nhờ mọi model dùng chung seed/n_splits nên thứ tự này giống hệt nhau giữa các model,
+        # cho phép so sánh có cặp (McNemar) thay vì chỉ đặt 2 con số mean cạnh nhau - với
+        # 1034 ảnh, McNemar phân biệt được chênh lệch mà nhìn mean±std không kết luận nổi.
+        'oof_true': oof_true.tolist(),
+        'oof_pred': oof_pred.tolist(),
     }
 
     summary_path = os.path.join(output_dir, model_name, f'kfold_{model_name}.json')
