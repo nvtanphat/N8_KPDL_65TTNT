@@ -101,10 +101,30 @@ nhưng thực chất thiên vị nhóm pretrained; công bằng đúng nghĩa l�
 
 ### Nhận định & Giới hạn
 
-- **Ba mô hình dẫn đầu tương đương nhau trong sai số.** MobileNetV3 (98.94 ± 1.10%),
-  EfficientNet-B0 (98.84 ± 0.73%) và ResNet50 (98.07 ± 1.49%) có độ lệch chuẩn giữa các fold
-  lớn hơn khoảng cách giữa chúng, khoảng tin cậy cũng chồng lên nhau. Không có cơ sở xếp hạng
-  ba mô hình này; chỉ BeanLeafLite là tách bạch hẳn khỏi phần còn lại.
+- **Kiểm định McNemar** (so từng cặp trên cùng 1034 ảnh, hiệu chỉnh đa so sánh bằng
+  Holm-Bonferroni với 10 phép so sánh). So `mean ± std` cạnh nhau là chưa đủ vì độ lệch chuẩn
+  giữa các fold lớn hơn khoảng cách giữa các mô hình; McNemar chỉ đếm những ảnh mà **hai mô
+  hình bất đồng**, nên nhạy hơn hẳn:
+
+  | Cặp so sánh | Chỉ A đúng | Chỉ B đúng | p (thô) | Kết luận |
+  |---|:---:|:---:|:---:|---|
+  | BeanLeafLite vs cả 4 mô hình còn lại | 8-14 | 51-59 | < 0.0001 | **Khác biệt** |
+  | MobileNetV3 vs ShuffleNetV2 | 15 | 1 | 0.0005 | **Khác biệt** |
+  | EfficientNet-B0 vs ShuffleNetV2 | 18 | 5 | 0.0106 | Không tách được |
+  | MobileNetV3 vs ResNet50 | 12 | 3 | 0.0352 | Không tách được |
+  | EfficientNet-B0 vs ResNet50 | 12 | 4 | 0.0768 | Không tách được |
+  | ResNet50 vs ShuffleNetV2 | 13 | 8 | 0.3833 | Không tách được |
+  | EfficientNet-B0 vs MobileNetV3 | 5 | 6 | 1.0000 | Không tách được |
+
+  Chỉ **2 kết luận** đứng vững sau hiệu chỉnh: BeanLeafLite kém hơn cả 4 mô hình còn lại, và
+  MobileNetV3-Large tốt hơn ShuffleNetV2. Đáng chú ý: **MobileNetV3 vs ResNet50 có p thô 0.0352**
+  (thắng 12 ảnh, thua 3) - nếu xét riêng lẻ thì "có ý nghĩa thống kê", nhưng khi đã chạy 10 phép
+  so sánh thì ngưỡng Holm siết còn 0.0125 nên **không được tính**. EfficientNet-B0 và MobileNetV3
+  thì bất đồng đúng 11 ảnh (5 vs 6, p = 1.0000) - tương đương nhau ở mức không thể tách rõ hơn.
+
+  Kết luận: **không có mô hình "tốt nhất"** trong nhóm dẫn đầu. ResNet50 dẫn đầu Test Accuracy
+  (99.85%) nhưng không hề vượt trội theo kiểm định có cặp, trong khi nó tốn 24.02 GFLOPs so với
+  1.25 của MobileNetV3.
 - **BeanLeafLite đạt 94.00% với 0.36 GFLOPs** - kém ResNet50 4 điểm nhưng rẻ hơn **67 lần** về
   FLOPs và **26 lần** về tham số. Đây mới là luận điểm của kiến trúc này, không phải độ chính xác.
 - **Giới hạn (đã ghi nhận, không khảo sát thêm):** lưới LR dừng ở 3e-3, và **2/5 mô hình chọn
