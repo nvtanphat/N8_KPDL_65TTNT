@@ -1,17 +1,20 @@
 # 🍃 Bean Leaf Lesions Classification
 
-Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn thương bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp các kiến trúc CNN gồm **BeanLeafLite** tự thiết kế (~0.94M params), **ShuffleNetV2** (~2.3M), **MobileNetV3-Large** (~3.2M), **EfficientNet-B0** (~5.3M), và **ResNet50** (~25.6M), đi kèm ứng dụng Web Streamlit.
+Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn thương bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp các kiến trúc CNN gồm **BeanLeafLite** tự thiết kế (0.91M params), **ShuffleNetV2** (1.26M), **MobileNetV3-Large** (3.22M), **EfficientNet-B0** (4.01M), và **ResNet50** (23.51M), đi kèm ứng dụng Web Streamlit.
 
 ---
 
 ## 📌 Tính năng Hệ thống
 
 - **Hỗ trợ Đa kiến trúc CNN (Multi-Architecture Ecosystem):**
-  - **BeanLeafLite (Custom CNN):** Kiến trúc siêu nhẹ tự thiết kế (~0.94M params).
-  - **ShuffleNetV2 (x1.0):** Tối ưu hóa xáo trộn kênh đặc trưng cho di động (~2.3M params).
-  - **MobileNetV3-Large:** Tối ưu hóa suy luận thời gian thực cho thiết bị Edge (~3.2M params).
-  - **EfficientNet-B0:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (~5.3M params).
-  - **ResNet50:** Kiến trúc mạng cuộn sâu tiêu chuẩn với Skip Connections (~25.6M params).
+  - **BeanLeafLite (Custom CNN):** Kiến trúc siêu nhẹ tự thiết kế (0.91M params, 0.36 GFLOPs).
+  - **ShuffleNetV2 (x1.0):** Tối ưu hóa xáo trộn kênh đặc trưng cho di động (1.26M params).
+  - **MobileNetV3-Large:** Tối ưu hóa suy luận thời gian thực cho thiết bị Edge (3.22M params).
+  - **EfficientNet-B0:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (4.01M params).
+  - **ResNet50:** Kiến trúc mạng cuộn sâu tiêu chuẩn với Skip Connections (23.51M params).
+
+  > Số tham số trên là của mô hình đã thay lớp phân loại về **3 lớp**, đo trực tiếp từ
+  > checkpoint - khác với con số thường trích trong paper gốc (vốn tính cho 1000 lớp ImageNet).
 
 - **Ứng dụng Web Tương tác (Streamlit Web App):**
   - **Single View:** Phân tích ảnh đơn, hiển thị biểu đồ xác suất & khuyến nghị y tế nông nghiệp.
@@ -20,14 +23,19 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
 
 ---
 
-## 🛠️ Kiến trúc Tự Thiết Kế: BeanLeafLite (~0.94M Params)
+## 🛠️ Kiến trúc Tự Thiết Kế: BeanLeafLite (0.91M Params, 0.36 GFLOPs)
 
 **BeanLeafLite** là mô hình mạng nơ-ron cuộn (CNN) được tự thiết kế nhằm tối ưu hóa sự cân bằng giữa độ chính xác và dung lượng tính toán trên các thiết bị di động hoặc môi trường nhúng:
 
-- **Depthwise-Separable Convolutions:** Tách biệt quá trình lọc không gian (spatial) và phối hợp kênh (channel), giúp giảm số lượng tham số xuống chỉ còn **~0.94M** (nhỏ hơn EfficientNet-B0 gấp 5.6 lần).
+- **Depthwise-Separable Convolutions:** Tách biệt quá trình lọc không gian (spatial) và phối hợp kênh (channel), giúp giảm số lượng tham số xuống chỉ còn **0.91M** (nhẹ hơn EfficientNet-B0 4.4 lần, ResNet50 26 lần).
 - **Residual Skip Connections:** Kết nối tắt giữa các tầng block giúp dòng gradient truyền trực tiếp, tránh hiện tượng suy giảm gradient khi huấn luyện sâu.
 - **Squeeze-and-Excitation (SE) Attention:** Cơ chế chú ý kênh giúp tự động tái trọng số các đặc trưng quan trọng, tập trung vào các chi tiết tổn thương đốm lá nhỏ.
-- **Hiệu năng Thực nghiệm:** Đạt độ chính xác cao trên tập kiểm thử độc lập, khẳng định hiệu quả vượt trội của mô hình tự thiết kế.
+- **Hiệu năng Thực nghiệm:** Đạt **94.00% OOF Accuracy** (CI 95%: 92.39-95.29) với chi phí
+  **0.36 GFLOPs** - thấp hơn ResNet50 **67 lần** về FLOPs trong khi chỉ kém 4 điểm chính xác.
+  Giá trị của kiến trúc này nằm ở tỉ lệ chính xác/chi phí, không phải ở độ chính xác tuyệt đối.
+- **Lưu ý về huấn luyện:** Đây là mô hình duy nhất train **from-scratch** (không có trọng số
+  pretrained), nên nó cần learning rate cao hơn hẳn nhóm còn lại (3e-3 so với 1e-3) và có độ
+  dao động giữa các lần chạy lớn hơn (± 2.41% so với ± 0.34-0.63%).
 
 ---
 
@@ -45,16 +53,52 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
 ## 📈 Kết quả Thực nghiệm & Đánh giá (Benchmark & Evaluation)
 
 ### Hiệu năng Mô hình Phân loại (Classification Benchmark)
-Đánh giá độc lập trên tập test chuẩn (133 ảnh) dưới cùng **Controlled Benchmark Protocol (384px)**:
 
-| Mô hình | Test Accuracy | Tham số (Params) | FLOPs (Tính toán) | Phân nhóm Tối ưu & Đặc trưng Kiến trúc |
-|---|:---:|:---:|:---:|---|
-| **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | **~0.10 GFLOPs** | Depthwise-Separable + Residual + SE Attention (siêu nhẹ) |
-| **ShuffleNetV2** (x1.0) | **98.65%** | ~1.26M | ~0.85 GFLOPs | Channel Shuffle & Inverted Residual cho di động |
-| **MobileNetV3-Large** | **97.74%** | ~3.2M | ~0.44 GFLOPs | Tối ưu hóa suy luận thực địa cho thiết bị Edge |
-| **EfficientNet-B0** | **98.50%** | ~5.3M | ~0.78 GFLOPs | Compound Scaling cân bằng hiệu năng & tài nguyên |
-| **ResNet50** | **99.85%** | ~23.51M | ~24.02 GFLOPs | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
+**Chỉ số chính là OOF Accuracy** (out-of-fold, 1034 ảnh), không phải Test Accuracy. Tập test
+chuẩn chỉ có 133 ảnh nên đã chạm trần: ResNet50 đạt Test Acc cao nhất (99.85%) nhưng chỉ xếp
+thứ 3 theo OOF - cột Test không còn khả năng phân giải giữa các mô hình.
 
+| Mô hình | LR | **OOF Accuracy** | CI 95% | Test Accuracy | Params | GFLOPs | Đặc trưng Kiến trúc |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| **MobileNetV3-Large** | 1e-3 | **98.94%** | 98.11-99.40 | 99.70 ± 0.41% | 3.22M | 1.25 | Tối ưu suy luận thực địa cho thiết bị Edge |
+| **EfficientNet-B0** | 1e-3 | **98.84%** | 97.98-99.33 | 99.40 ± 0.63% | 4.01M | 2.26 | Compound Scaling cân bằng hiệu năng & tài nguyên |
+| **ResNet50** | 1e-3 | **98.07%** | 97.03-98.74 | 99.85 ± 0.34% | 23.51M | 24.02 | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
+| **ShuffleNetV2** (x1.0) | 3e-3 | **97.58%** | 96.46-98.36 | 98.65 ± 0.63% | 1.26M | 0.85 | Channel Shuffle & Inverted Residual cho di động |
+| **BeanLeafLite** (Custom CNN) | 3e-3 | **94.00%** | 92.39-95.29 | 93.53 ± 2.41% | 0.91M | 0.36 | Depthwise-Separable + Residual + SE Attention |
+
+### Giao thức Đánh giá (Benchmark Protocol)
+
+5-fold StratifiedKFold trên tập train (1034 ảnh), seed cố định 42. **Mọi mô hình dùng chung
+một quy trình huấn luyện**, không mô hình nào có ngoại lệ:
+
+- AdamW (weight decay 1e-2), CosineAnnealingLR, **40 epoch cố định - không dừng sớm**
+- Ảnh 384x384 (cùng phép nội suy Bilinear), batch 32, label smoothing 0.05, augmentation giống nhau
+- Learning rate của từng mô hình chọn từ **cùng một lưới** {1e-4, 3e-4, 1e-3, 3e-3} bằng sweep
+  15 epoch trên tập internal-validation. Mỗi mô hình được thử **đúng 4 lần như nhau**.
+- Tập test (`val_dir`) không tham gia chọn siêu tham số, không tham gia chọn checkpoint, chỉ
+  được đánh giá đúng 1 lần sau khi huấn luyện xong.
+- **OOF Accuracy** = gộp dự đoán out-of-fold của cả 5 fold, phủ toàn bộ 1034 ảnh train. Đây là
+  ước lượng có khoảng tin cậy hẹp hơn 3 lần so với đo trên 133 ảnh test.
+
+Vì sao cần sweep LR thay vì ép chung một giá trị: `lr=3e-4` là learning rate kinh điển để
+*fine-tune* mô hình pretrained, quá nhỏ với mô hình *train from-scratch*. Thực nghiệm xác nhận
+điều này - **cả 5 mô hình đều chọn LR cao hơn 3e-4**. Ép chung một LR nghe có vẻ công bằng
+nhưng thực chất thiên vị nhóm pretrained; công bằng đúng nghĩa là mọi mô hình được tune với
+**cùng ngân sách tìm kiếm**, rồi so kết quả tốt nhất của từng mô hình.
+
+### Nhận định & Giới hạn
+
+- **MobileNetV3-Large và EfficientNet-B0 tương đương nhau trong sai số** - chênh 0.10 điểm với
+  khoảng tin cậy chồng gần như hoàn toàn. Không có cơ sở tuyên bố mô hình nào tốt hơn.
+- **BeanLeafLite đạt 94.00% với 0.36 GFLOPs** - kém ResNet50 4 điểm nhưng rẻ hơn **67 lần** về
+  FLOPs và **26 lần** về tham số. Đây mới là luận điểm của kiến trúc này, không phải độ chính xác.
+- **Giới hạn:** ShuffleNetV2 và BeanLeafLite đều chọn mép trên của lưới LR (3e-3); riêng
+  BeanLeafLite còn tăng đơn điệu (0.7488 → 0.7826 → 0.8744 → 0.9082) nên điểm tối ưu của nó có
+  thể nằm ngoài lưới đã quét.
+- **Giới hạn:** mọi mô hình đều chạy ở 384px, vốn nằm ngoài độ phân giải thiết kế (224px) của
+  MobileNetV3 và ShuffleNetV2.
+
+Số liệu chi tiết từng fold, kết quả sweep và confusion matrix: [`outputs/kfold/`](outputs/kfold/).
 
 
 ---
