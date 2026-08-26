@@ -25,7 +25,8 @@ from bean_leaf.evaluation.metrics import collect_predictions
 from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, resnet50, shufflenetv2
 
 MODELS = {
-    'vgg': bean_leaf_lite.create_lite_model,
+    'bean_leaf_lite': bean_leaf_lite.create_lite_model,
+    'vgg': bean_leaf_lite.create_lite_model,  # alias cho tương thích ngược
     'efficientnet': lambda n: efficientnet.create_efficientnet_model(n, pretrained=False),
     'mobilenet': lambda n: mobilenetv3.create_mobilenetv3_model(n, pretrained=False),
     'resnet50': lambda n: resnet50.create_resnet50_model(n, pretrained=False),

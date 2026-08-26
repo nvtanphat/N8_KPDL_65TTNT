@@ -13,7 +13,7 @@ def _dummy_loader(batch_size=2, n_batches=3):
     return DataLoader(TensorDataset(x, y), batch_size=batch_size)
 
 
-def test_vgg_optimizer_scheduler():
+def test_bean_leaf_lite_optimizer_scheduler():
     model = bean_leaf_lite.create_lite_model(NUM_CLASSES)
     criterion, optimizer, scheduler = bean_leaf_lite.get_optimizer_scheduler(model, num_epochs=2)
     assert criterion is not None and optimizer is not None and scheduler is not None

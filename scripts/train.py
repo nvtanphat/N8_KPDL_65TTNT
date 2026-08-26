@@ -1,6 +1,6 @@
 """
 Bean Leaf Classification - Main Training Script
-Hỗ trợ 3 model PyTorch: VGG (custom), EfficientNet-B3, MobileNetV3
+Hỗ trợ 5 mô hình CNN PyTorch: BeanLeafLite (custom), EfficientNet-B0, MobileNetV3, ResNet50, ShuffleNetV2
 """
 
 import sys
@@ -36,12 +36,13 @@ from bean_leaf.utils.seed import set_seed
 from bean_leaf.models import bean_leaf_lite, efficientnet, mobilenetv3, resnet50, shufflenetv2
 
 NUM_CLASSES = DEFAULT_CONFIG.num_classes
-ALL_MODELS = ['vgg', 'efficientnet', 'mobilenet', 'resnet50', 'shufflenetv2']
+ALL_MODELS = ['bean_leaf_lite', 'efficientnet', 'mobilenet', 'resnet50', 'shufflenetv2']
 device = bean_leaf_lite.device
 
 # Mỗi model: module chứa config + factory, và interpolation phù hợp với kiến trúc
 MODEL_REGISTRY = {
-    'vgg': {'module': bean_leaf_lite, 'create': bean_leaf_lite.create_lite_model, 'interpolation': InterpolationMode.BILINEAR},
+    'bean_leaf_lite': {'module': bean_leaf_lite, 'create': bean_leaf_lite.create_lite_model, 'interpolation': InterpolationMode.BILINEAR},
+    'vgg': {'module': bean_leaf_lite, 'create': bean_leaf_lite.create_lite_model, 'interpolation': InterpolationMode.BILINEAR}, # alias cho tương thích ngược
     'efficientnet': {'module': efficientnet, 'create': efficientnet.create_efficientnet_model, 'interpolation': InterpolationMode.BILINEAR},
     'mobilenet': {'module': mobilenetv3, 'create': mobilenetv3.create_mobilenetv3_model, 'interpolation': InterpolationMode.BILINEAR},
     'resnet50': {'module': resnet50, 'create': resnet50.create_resnet50_model, 'interpolation': InterpolationMode.BILINEAR},

@@ -54,7 +54,7 @@ def evaluate_model(model, val_loader, device, class_names):
 
 def plot_gradcam(model, image_tensor, device, target_layer=None):
     """
-    Grad-CAM cho model CNN dạng PyTorch (VGG/EfficientNet/MobileNetV3).
+    Grad-CAM cho mô hình CNN PyTorch.
     image_tensor: tensor đã preprocess, shape (1, C, H, W).
     target_layer: nn.Conv2d cụ thể; nếu None sẽ tự tìm Conv2d cuối cùng trong model.
 

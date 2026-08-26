@@ -1,7 +1,7 @@
 """
 Utility functions cho ứng dụng Web phân loại bệnh lá đậu
-Hỗ trợ load các loại model chạy trên PyTorch:
-MobileNetV3, CNN VGG (custom), EfficientNet-B3
+Hỗ trợ load các loại model CNN chạy trên PyTorch:
+BeanLeafLite (custom CNN), MobileNetV3, EfficientNet-B0, ResNet50, ShuffleNetV2
 """
 import sys
 if hasattr(sys.stdout, 'reconfigure'):
@@ -35,7 +35,7 @@ def _get_torch():
 # Dùng chung định nghĩa kiến trúc với lúc train (package bean_leaf, `pip install -e .`)
 # thay vì khai báo lại ở đây - tránh lệch kiến trúc giữa train và inference.
 
-def _create_vgg_model(num_classes=3):
+def _create_bean_leaf_lite_model(num_classes=3):
     from bean_leaf.models.bean_leaf_lite import create_lite_model
     return create_lite_model(num_classes=num_classes)
 
@@ -104,7 +104,7 @@ def _load_pytorch_model(model_path, architecture):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if architecture == 'bean_leaf_lite':
-        model = _create_vgg_model(num_classes=3)
+        model = _create_bean_leaf_lite_model(num_classes=3)
     elif architecture == 'mobilenetv3':
         model = _create_mobilenetv3_model(num_classes=3)
     elif architecture == 'efficientnet':
