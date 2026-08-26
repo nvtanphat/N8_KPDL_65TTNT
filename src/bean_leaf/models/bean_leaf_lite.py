@@ -107,13 +107,17 @@ class BeanLeafLite(nn.Module):
     GAP + classifier 2 lớp FC. ~0.9-1.1M tham số tuỳ đúng con số khi khởi tạo (in bằng
     print_model_summary), nhẹ hơn MobileNetV3-Large (~3.2M).
 
-    Đã thử 2 hướng "cải tiến" và cả 2 đều làm tệ hơn 98.50% (test acc, xem README):
-    giảm regularization (se_reduction 4->2, dropout 0.3->0.2) -> 94.74%; tăng capacity
-    thô (nới kênh 2 stage cuối) -> 92.48%. Cả 2 lần đều overfit nhanh hơn (train acc
-    ~99% trong khi internal-val plateau thấp hơn) - dataset train-from-scratch quy mô
-    nhỏ này không "nuôi" nổi thêm capacity, nên kiến trúc gốc dưới đây (rộng vừa phải,
-    se_reduction=4, dropout=0.3) đã là điểm cân bằng tốt, không nên chỉnh thêm mà
-    không có lý do mới.
+    Đã thử 2 hướng "cải tiến" và cả 2 đều tệ hơn kiến trúc gốc: giảm regularization
+    (se_reduction 4->2, dropout 0.3->0.2) và tăng capacity thô (nới kênh 2 stage cuối).
+    Cả 2 lần đều overfit nhanh hơn (train acc ~99% trong khi internal-val plateau thấp
+    hơn) - dataset train-from-scratch quy mô nhỏ này không "nuôi" nổi thêm capacity.
+
+    CẢNH BÁO về mức tin cậy của kết luận trên: 2 thí nghiệm đó chạy MỘT LẦN dưới protocol
+    cũ (early stopping cắt ngang lịch LR, không cố định seed). Theo tiêu chuẩn hiện tại của
+    repo - 5-fold, seed cố định, ngân sách epoch cố định - một lần chạy đơn lẻ không đủ để
+    kết luận, vì riêng model này dao động +/- 1.23% giữa các fold. Muốn thực sự bác bỏ 2
+    hướng đó thì phải chạy lại bằng --kfold. Giữ kiến trúc gốc là lựa chọn mặc định hợp lý,
+    nhưng đừng coi đây là kết luận đã kiểm chứng.
     """
     def __init__(self, num_classes=3):
         super().__init__()
