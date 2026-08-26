@@ -47,13 +47,13 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
 ### Hiệu năng Mô hình Phân loại (Classification Benchmark)
 Đánh giá độc lập trên tập test chuẩn (133 ảnh) dưới cùng **Controlled Benchmark Protocol (384px)**:
 
-| Mô hình | Test Accuracy | Tham số (Params) | Phân nhóm Tối ưu & Đặc trưng Kiến trúc |
-|---|:---:|:---:|---|
-| **BeanLeafLite** (Custom CNN) | *Chờ train* | **~0.94M** | Depthwise-Separable + Residual + SE Attention (siêu nhẹ) |
-| **ShuffleNetV2** (x1.0) | *Chờ train* | ~2.3M | Channel Shuffle & Inverted Residual cho di động |
-| **MobileNetV3-Large** | *Chờ train* | ~3.2M | Kiến trúc tối ưu hóa cho thiết bị di động & Edge Computing |
-| **EfficientNet-B0** | *Chờ train* | ~5.3M | Compound Scaling cân bằng hiệu năng & tài nguyên |
-| **ResNet50** | *Chờ train* | ~25.6M | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
+| Mô hình | Test Accuracy | Tham số (Params) | FLOPs (Tính toán) | Phân nhóm Tối ưu & Đặc trưng Kiến trúc |
+|---|:---:|:---:|:---:|---|
+| **BeanLeafLite** (Custom CNN) | **98.50%** | **~0.94M** | **~0.10 GFLOPs** | Depthwise-Separable + Residual + SE Attention (siêu nhẹ) |
+| **ShuffleNetV2** (x1.0) | **98.65%** | ~1.26M | ~0.85 GFLOPs | Channel Shuffle & Inverted Residual cho di động |
+| **MobileNetV3-Large** | **97.74%** | ~3.2M | ~0.44 GFLOPs | Tối ưu hóa suy luận thực địa cho thiết bị Edge |
+| **EfficientNet-B0** | **98.50%** | ~5.3M | ~0.78 GFLOPs | Compound Scaling cân bằng hiệu năng & tài nguyên |
+| **ResNet50** | **99.85%** | ~23.51M | ~24.02 GFLOPs | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
 
 
 
