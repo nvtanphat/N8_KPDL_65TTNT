@@ -13,8 +13,10 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
   - **EfficientNet-B0:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (4.01M params).
   - **ResNet50:** Kiến trúc mạng cuộn sâu tiêu chuẩn với Skip Connections (23.51M params).
 
-  > Số tham số trên là của mô hình đã thay lớp phân loại về **3 lớp**, đo trực tiếp từ
-  > checkpoint - khác với con số thường trích trong paper gốc (vốn tính cho 1000 lớp ImageNet).
+  > Số tham số và FLOPs trên đo bằng `torch.utils.flop_counter` trên mô hình đã thay lớp phân
+  > loại về **3 lớp**, ở đúng độ phân giải 384x384 dùng khi benchmark - khác với con số thường
+  > trích trong paper gốc (tính cho 1000 lớp ImageNet ở 224x224). FLOPs tính 1 phép nhân-cộng
+  > là 2 FLOPs; paper nào ghi "FLOPs" theo nghĩa MACs sẽ ra đúng một nửa con số này.
 
 - **Ứng dụng Web Tương tác (Streamlit Web App):**
   - **Single View:** Phân tích ảnh đơn, hiển thị biểu đồ xác suất & khuyến nghị y tế nông nghiệp.
@@ -34,8 +36,13 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
   **0.36 GFLOPs** - thấp hơn ResNet50 **67 lần** về FLOPs trong khi chỉ kém 4 điểm chính xác.
   Giá trị của kiến trúc này nằm ở tỉ lệ chính xác/chi phí, không phải ở độ chính xác tuyệt đối.
 - **Lưu ý về huấn luyện:** Đây là mô hình duy nhất train **from-scratch** (không có trọng số
-  pretrained), nên nó cần learning rate cao hơn hẳn nhóm còn lại (3e-3 so với 1e-3) và có độ
-  dao động giữa các lần chạy lớn hơn (± 2.41% so với ± 0.34-0.63%).
+  pretrained). Nó cần learning rate 3e-3, cao hơn nhóm pretrained lớn (1e-3) - nhưng ngang bằng
+  ShuffleNetV2, vốn cũng chọn 3e-3.
+
+  Về độ ổn định, cần phân biệt hai con số: trên **tập test 133 ảnh** nó dao động ± 2.41%, lớn
+  nhất trong 5 mô hình; nhưng trên **cross-validation 1034 ảnh** thì ± 1.23%, chỉ đứng **thứ 3**
+  - ShuffleNetV2 (± 1.78%) và ResNet50 (± 1.49%) còn dao động hơn. Nói "BeanLeafLite kém ổn định
+  nhất" là không chính xác; đúng hơn là kết quả của nó trên tập test nhỏ khó lặp lại hơn.
 
 ---
 
@@ -90,8 +97,8 @@ một quy trình huấn luyện**, không mô hình nào có ngoại lệ:
   được đánh giá đúng 1 lần sau khi huấn luyện xong.
 - **CV Accuracy** = trung bình ± độ lệch chuẩn accuracy của 5 fold. Vì các fold gần bằng nhau
   về kích thước, con số này trùng khít với accuracy tính bằng cách gộp toàn bộ dự đoán
-  out-of-fold lại (1034 ảnh) - cột CI 95% được tính trên tập gộp đó, và hẹp hơn 3 lần so với
-  khoảng tin cậy khi chỉ đo trên 133 ảnh test.
+  out-of-fold lại (1034 ảnh) - cột CI 95% được tính trên tập gộp đó, và hẹp hơn **khoảng 3 lần**
+  (thực đo: 2.87-3.63 lần tuỳ mô hình) so với khoảng tin cậy khi chỉ đo trên 133 ảnh test.
 
 Vì sao cần sweep LR thay vì ép chung một giá trị: `lr=3e-4` là learning rate kinh điển để
 *fine-tune* mô hình pretrained, quá nhỏ với mô hình *train from-scratch*. Thực nghiệm xác nhận
