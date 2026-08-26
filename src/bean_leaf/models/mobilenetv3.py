@@ -33,7 +33,16 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # ===================== MODEL CREATION =====================
 def create_mobilenetv3_model(num_classes=NUM_CLASSES, pretrained=True):
-    """MobileNetV3Large pre-trained ImageNet + custom head (GAP -> Dense(256) -> BN -> SiLU -> Dropout -> Dense)"""
+    """
+    MobileNetV3-Large pretrained ImageNet + head phân loại DÙNG CHUNG với EfficientNet-B0
+    và ResNet50: Dropout(0.3) -> Linear(in_features -> num_classes).
+
+    Trước đây model này có head riêng (Linear(960->256) -> BatchNorm1d -> SiLU -> Dropout(0.3)
+    -> Linear(256->3)), tức thêm hẳn một tầng ẩn 256 chiều + BatchNorm mà 3 model pretrained
+    kia không có (~0.24M params, 7.6% tổng params của nó). Trong khi đó MobileNetV3 lại xếp
+    hạng 1 ở benchmark - không loại trừ được khả năng thứ hạng đó đến từ phần head chứ không
+    phải từ backbone. Đã gỡ để bảng benchmark so sánh đúng kiến trúc backbone.
+    """
     weights = models.MobileNet_V3_Large_Weights.DEFAULT if pretrained else None
     model = models.mobilenet_v3_large(weights=weights)
 
@@ -42,11 +51,8 @@ def create_mobilenetv3_model(num_classes=NUM_CLASSES, pretrained=True):
 
     in_features = model.classifier[0].in_features  # 960
     model.classifier = nn.Sequential(
-        nn.Linear(in_features, 256),
-        nn.BatchNorm1d(256),
-        nn.SiLU(),  # Swish
-        nn.Dropout(0.3),
-        nn.Linear(256, num_classes),
+        nn.Dropout(p=0.3, inplace=True),
+        nn.Linear(in_features, num_classes),
     )
     return model
 

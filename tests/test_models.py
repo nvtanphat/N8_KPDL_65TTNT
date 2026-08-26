@@ -37,3 +37,42 @@ def test_resnet50_forward():
 def test_shufflenetv2_forward():
     model = shufflenetv2.create_shufflenetv2_model(NUM_CLASSES, pretrained=False)
     _assert_forward_shape(model, img_size=shufflenetv2.IMG_SIZE)
+
+
+def test_4_model_pretrained_dung_chung_1_head():
+    """
+    Chốt bằng test: 4 model pretrained phải có head phân loại cùng cấu trúc.
+
+    Trước đây MobileNetV3 có head riêng (Linear(960->256) + BatchNorm1d + SiLU + Dropout +
+    Linear(256->3)) trong khi 3 model kia chỉ Dropout + Linear. Nó thêm ~0.24M params và
+    MobileNetV3 lại đứng hạng 1 benchmark - không tách được đóng góp của head khỏi backbone.
+    """
+    import torch.nn as nn
+    from bean_leaf.models import efficientnet, mobilenetv3, resnet50, shufflenetv2
+
+    builders = {
+        'mobilenetv3': mobilenetv3.create_mobilenetv3_model(NUM_CLASSES, pretrained=False),
+        'efficientnet': efficientnet.create_efficientnet_model(NUM_CLASSES, pretrained=False),
+        'resnet50': resnet50.create_resnet50_model(NUM_CLASSES, pretrained=False),
+        'shufflenetv2': shufflenetv2.create_shufflenetv2_model(NUM_CLASSES, pretrained=False),
+    }
+
+    shapes = {}
+    for name, model in builders.items():
+        head = model.classifier if hasattr(model, 'classifier') else model.fc
+        shapes[name] = tuple(type(layer).__name__ for layer in head)
+
+    assert len(set(shapes.values())) == 1, f"head lệch nhau: {shapes}"
+
+    # Lớp cuối phải map thẳng từ backbone ra num_classes, không qua tầng ẩn nào
+    for name, model in builders.items():
+        head = model.classifier if hasattr(model, 'classifier') else model.fc
+        last = [layer for layer in head if isinstance(layer, nn.Linear)]
+        assert len(last) == 1, f"{name} có nhiều hơn 1 Linear trong head"
+        assert last[0].out_features == NUM_CLASSES
+
+    # Khác biệt còn lại đã biết: ShuffleNetV2 dùng dropout 0.2, 3 model kia dùng 0.3.
+    drops = {n: [l.p for l in (m.classifier if hasattr(m, 'classifier') else m.fc)
+                 if isinstance(l, nn.Dropout)][0] for n, m in builders.items()}
+    assert drops['shufflenetv2'] == 0.2, "ShuffleNetV2 đổi dropout - cập nhật lại README mục Giới hạn"
+    assert {drops['mobilenetv3'], drops['efficientnet'], drops['resnet50']} == {0.3}
