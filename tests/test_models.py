@@ -71,8 +71,8 @@ def test_4_model_pretrained_dung_chung_1_head():
         assert len(last) == 1, f"{name} có nhiều hơn 1 Linear trong head"
         assert last[0].out_features == NUM_CLASSES
 
-    # Khác biệt còn lại đã biết: ShuffleNetV2 dùng dropout 0.2, 3 model kia dùng 0.3.
+    # Dropout phải bằng nhau: ShuffleNetV2 từng để 0.2 trong khi 3 model kia dùng 0.3, tức
+    # regularization nhẹ hơn - một hyperparameter không đồng nhất giữa các model được so sánh.
     drops = {n: [l.p for l in (m.classifier if hasattr(m, 'classifier') else m.fc)
                  if isinstance(l, nn.Dropout)][0] for n, m in builders.items()}
-    assert drops['shufflenetv2'] == 0.2, "ShuffleNetV2 đổi dropout - cập nhật lại README mục Giới hạn"
-    assert {drops['mobilenetv3'], drops['efficientnet'], drops['resnet50']} == {0.3}
+    assert set(drops.values()) == {0.3}, f"dropout lệch nhau: {drops}"

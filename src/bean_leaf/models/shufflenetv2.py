@@ -93,8 +93,11 @@ def create_shufflenetv2_model(num_classes=NUM_CLASSES, pretrained=True):
     model = models.shufflenet_v2_x1_0(weights=weights)
 
     in_features = model.fc.in_features
+    # Dropout 0.3 dùng chung với MobileNetV3 / EfficientNet-B0 / ResNet50. Trước đây model này
+    # để 0.2 - regularization nhẹ hơn 3 model kia, tức một hyperparameter không đồng nhất trong
+    # bảng benchmark vốn tuyên bố mọi model chạy cùng cấu hình.
     model.fc = nn.Sequential(
-        nn.Dropout(p=0.2),
+        nn.Dropout(p=0.3),
         nn.Linear(in_features, num_classes)
     )
     
