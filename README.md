@@ -1,6 +1,6 @@
 # 🍃 Bean Leaf Lesions Classification
 
-Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn thương bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp các kiến trúc CNN gồm **BeanLeafLite** tự thiết kế (0.91M params), **ShuffleNetV2** (1.26M), **MobileNetV3-Large** (3.22M), **EfficientNet-B0** (4.01M), và **ResNet50** (23.51M), đi kèm ứng dụng Web Streamlit.
+Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn thương bệnh hại trên lá đậu (Bean Leaves). Dự án tích hợp các kiến trúc CNN gồm **BeanLeafLite** tự thiết kế (0.91M params), **ShuffleNetV2** (1.26M), **MobileNetV3-Large** (2.97M), **EfficientNet-B0** (4.01M), và **ResNet50** (23.51M), đi kèm ứng dụng Web Streamlit.
 
 ---
 
@@ -9,7 +9,7 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
 - **Hỗ trợ Đa kiến trúc CNN (Multi-Architecture Ecosystem):**
   - **BeanLeafLite (Custom CNN):** Kiến trúc siêu nhẹ tự thiết kế (0.91M params, 0.36 GFLOPs).
   - **ShuffleNetV2 (x1.0):** Tối ưu hóa xáo trộn kênh đặc trưng cho di động (1.26M params).
-  - **MobileNetV3-Large:** Tối ưu hóa suy luận thời gian thực cho thiết bị Edge (3.22M params).
+  - **MobileNetV3-Large:** Tối ưu hóa suy luận thời gian thực cho thiết bị Edge (2.97M params).
   - **EfficientNet-B0:** Cân bằng tối ưu giữa tham số và khả năng tổng quát hóa (4.01M params).
   - **ResNet50:** Kiến trúc mạng cuộn sâu tiêu chuẩn với Skip Connections (23.51M params).
 
@@ -68,20 +68,20 @@ ResNet50 đạt Test Acc cao nhất (99.85%) nhưng chỉ xếp thứ 3 theo Cro
 
 | Mô hình | LR | **CV Accuracy (5 fold)** | CI 95% | Test Accuracy | Params | GFLOPs | Đặc trưng Kiến trúc |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| **MobileNetV3-Large** | 1e-3 | **98.94 ± 1.10%** | 98.11-99.40 | 99.70 ± 0.41% | 3.22M | 1.25 | Tối ưu suy luận thực địa cho thiết bị Edge |
 | **EfficientNet-B0** | 1e-3 | **98.84 ± 0.73%** | 97.98-99.33 | 99.40 ± 0.63% | 4.01M | 2.26 | Compound Scaling cân bằng hiệu năng & tài nguyên |
+| **MobileNetV3-Large** | 1e-3 | **98.74 ± 1.31%** | 97.86-99.26 | 99.70 ± 0.41% | 2.97M | 1.25 | Tối ưu suy luận thực địa cho thiết bị Edge |
 | **ResNet50** | 1e-3 | **98.07 ± 1.49%** | 97.03-98.74 | 99.85 ± 0.34% | 23.51M | 24.02 | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
-| **ShuffleNetV2** (x1.0) | 3e-3 | **97.58 ± 1.78%** | 96.46-98.36 | 98.65 ± 0.63% | 1.26M | 0.85 | Channel Shuffle & Inverted Residual cho di động |
+| **ShuffleNetV2** (x1.0) | 3e-3 | **97.39 ± 2.38%** | 96.23-98.20 | 98.80 ± 0.67% | 1.26M | 0.85 | Channel Shuffle & Inverted Residual cho di động |
 | **BeanLeafLite** (Custom CNN) | 3e-3 | **94.00 ± 1.23%** | 92.39-95.29 | 93.53 ± 2.41% | 0.91M | 0.36 | Depthwise-Separable + Residual + SE Attention |
 
 Accuracy từng fold (dùng để tính cột CV Accuracy):
 
 | Mô hình | Fold 1 | Fold 2 | Fold 3 | Fold 4 | Fold 5 |
 |---|:---:|:---:|:---:|:---:|:---:|
-| MobileNetV3-Large | 99.52 | 99.03 | 97.10 | 100.00 | 99.03 |
 | EfficientNet-B0 | 99.03 | 99.52 | 97.58 | 99.03 | 99.03 |
+| MobileNetV3-Large | 99.52 | 100.00 | 97.10 | 99.52 | 97.57 |
 | ResNet50 | 99.03 | 99.03 | 95.65 | 97.58 | 99.03 |
-| ShuffleNetV2 | 99.03 | 96.62 | 95.17 | 99.52 | 97.57 |
+| ShuffleNetV2 | 98.55 | 99.03 | 93.24 | 98.55 | 97.57 |
 | BeanLeafLite | 94.69 | 95.17 | 93.24 | 94.69 | 92.23 |
 
 ### Giao thức Đánh giá (Benchmark Protocol)
@@ -115,34 +115,47 @@ nhưng thực chất thiên vị nhóm pretrained; công bằng đúng nghĩa l�
 
   | Cặp so sánh | Chỉ A đúng | Chỉ B đúng | p (thô) | Kết luận |
   |---|:---:|:---:|:---:|---|
-  | BeanLeafLite vs cả 4 mô hình còn lại | 8-14 | 51-59 | < 0.0001 | **Khác biệt** |
-  | MobileNetV3 vs ShuffleNetV2 | 15 | 1 | 0.0005 | **Khác biệt** |
-  | EfficientNet-B0 vs ShuffleNetV2 | 18 | 5 | 0.0106 | Không tách được |
-  | MobileNetV3 vs ResNet50 | 12 | 3 | 0.0352 | Không tách được |
+  | BeanLeafLite vs EfficientNet-B0 | 8 | 58 | < 0.0001 | **Khác biệt** |
+  | BeanLeafLite vs MobileNetV3 | 11 | 60 | < 0.0001 | **Khác biệt** |
+  | BeanLeafLite vs ResNet50 | 14 | 56 | < 0.0001 | **Khác biệt** |
+  | BeanLeafLite vs ShuffleNetV2 | 17 | 52 | 0.00003 | **Khác biệt** |
+  | EfficientNet-B0 vs ShuffleNetV2 | 19 | 4 | 0.0026 | **Khác biệt** |
+  | MobileNetV3 vs ShuffleNetV2 | 20 | 6 | 0.0094 | **Khác biệt** |
   | EfficientNet-B0 vs ResNet50 | 12 | 4 | 0.0768 | Không tách được |
-  | ResNet50 vs ShuffleNetV2 | 13 | 8 | 0.3833 | Không tách được |
-  | EfficientNet-B0 vs MobileNetV3 | 5 | 6 | 1.0000 | Không tách được |
+  | ResNet50 vs ShuffleNetV2 | 12 | 5 | 0.1435 | Không tách được |
+  | MobileNetV3 vs ResNet50 | 13 | 6 | 0.1671 | Không tách được |
+  | EfficientNet-B0 vs MobileNetV3 | 8 | 7 | 1.0000 | Không tách được |
 
-  Chỉ **2 kết luận** đứng vững sau hiệu chỉnh: BeanLeafLite kém hơn cả 4 mô hình còn lại, và
-  MobileNetV3-Large tốt hơn ShuffleNetV2. Đáng chú ý: **MobileNetV3 vs ResNet50 có p thô 0.0352**
-  (thắng 12 ảnh, thua 3) - nếu xét riêng lẻ thì "có ý nghĩa thống kê", nhưng khi đã chạy 10 phép
-  so sánh thì ngưỡng Holm siết còn 0.0125 nên **không được tính**. EfficientNet-B0 và MobileNetV3
-  thì bất đồng đúng 11 ảnh (5 vs 6, p = 1.0000) - tương đương nhau ở mức không thể tách rõ hơn.
+  Sáu kết luận đứng vững sau hiệu chỉnh, gộp lại thành thứ tự sau:
 
-  Kết luận: **không có mô hình "tốt nhất"** trong nhóm dẫn đầu. ResNet50 dẫn đầu Test Accuracy
-  (99.85%) nhưng không hề vượt trội theo kiểm định có cặp, trong khi nó tốn 24.02 GFLOPs so với
-  1.25 của MobileNetV3.
-- **BeanLeafLite đạt 94.00% với 0.36 GFLOPs** - kém ResNet50 4 điểm nhưng rẻ hơn **67 lần** về
-  FLOPs và **26 lần** về tham số. Đây mới là luận điểm của kiến trúc này, không phải độ chính xác.
+  1. **BeanLeafLite kém hơn cả 4 mô hình pretrained** - thua 52-60 ảnh, chỉ thắng 8-17.
+  2. **EfficientNet-B0 và MobileNetV3 đều tốt hơn ShuffleNetV2.**
+  3. **EfficientNet-B0, MobileNetV3 và ResNet50 không tách được khỏi nhau** - mọi cặp trong
+     nhóm này đều có p > 0.07. Riêng EfficientNet-B0 vs MobileNetV3 bất đồng đúng 15 ảnh
+     (8 vs 7, p = 1.0000): tương đương nhau ở mức không thể tương đương hơn.
+  4. ResNet50 và ShuffleNetV2 cũng không tách được (p = 0.1435), dù ShuffleNetV2 thua rõ
+     hai mô hình đầu bảng.
+
+  Lưu ý mức tin cậy: cặp **MobileNetV3 vs ShuffleNetV2 có p = 0.0094 so với ngưỡng Holm 0.0100**
+  - qua sát nút, không nên coi là kết luận chắc chắn.
+
+  Kết luận: **không có mô hình "tốt nhất"**. ResNet50 dẫn đầu Test Accuracy (99.85%) nhưng
+  không vượt trội ai theo kiểm định có cặp, trong khi tốn 24.02 GFLOPs so với 1.25 của
+  MobileNetV3 - gấp **19 lần** cho cùng một mức chính xác không phân biệt được.
+- **BeanLeafLite đạt 94.00% với 0.36 GFLOPs** - kém mô hình dẫn đầu 4.8 điểm nhưng rẻ hơn
+  ResNet50 **67 lần** về FLOPs và **26 lần** về tham số. Đây mới là luận điểm của kiến trúc này,
+  không phải độ chính xác. Lưu ý McNemar cho thấy khoảng cách này là **thật** (thua 52-60 ảnh
+  trên 1034, p < 0.0001), khác hẳn với các khoảng cách trong nhóm pretrained vốn không phân
+  biệt được.
 - **Giới hạn (đã ghi nhận, không khảo sát thêm):** lưới LR dừng ở 3e-3, và **2/5 mô hình chọn
   đúng giá trị mép trên đó**. Kết quả sweep đầy đủ (internal-val accuracy sau 15 epoch):
 
   | Mô hình | 1e-4 | 3e-4 | 1e-3 | 3e-3 | Chọn |
   |---|:---:|:---:|:---:|:---:|:---:|
   | EfficientNet-B0 | 97.10 | 99.03 | **99.52** | 99.03 | 1e-3 |
-  | MobileNetV3-Large | 97.10 | 98.55 | **99.03** | 98.55 | 1e-3 |
+  | MobileNetV3-Large | 97.58 | 98.07 | **99.52** | 98.55 | 1e-3 |
   | ResNet50 | 97.58 | 98.07 | **98.55** | 97.58 | 1e-3 |
-  | ShuffleNetV2 | 97.10 | 99.03 | 98.55 | **99.52** | 3e-3 |
+  | ShuffleNetV2 | 97.10 | 99.03 | 99.03 | **99.52** | 3e-3 |
   | BeanLeafLite | 74.88 | 78.26 | 87.44 | **90.82** | 3e-3 |
 
   Ba mô hình đầu có cực đại nằm gọn trong lưới (giảm ở 3e-3) nên LR đã chọn là đáng tin.
@@ -154,8 +167,21 @@ nhưng thực chất thiên vị nhóm pretrained; công bằng đúng nghĩa l�
 
   Một nhận xét đáng lưu ý từ bảng trên: **không mô hình nào chọn 3e-4** - giá trị vốn được
   dùng làm learning rate chung cho tất cả trước khi có sweep.
-- **Giới hạn:** mọi mô hình đều chạy ở 384px, vốn nằm ngoài độ phân giải thiết kế (224px) của
-  MobileNetV3 và ShuffleNetV2.
+- **Giới hạn:** mọi mô hình đều chạy ở 384px, trong khi **cả 4 mô hình pretrained**
+  (MobileNetV3, ShuffleNetV2, EfficientNet-B0, ResNet50) đều được thiết kế cho **224px** và
+  trọng số ImageNet của chúng cũng học ở 224px. Ngược lại BeanLeafLite được thiết kế cho đúng
+  384px (xem docstring của nó). Ảnh gốc là 500x500 nên 384px là thu nhỏ chứ không phóng to, và
+  mọi mô hình đều chịu cùng điều kiện - nhưng đây là mốc "có kiểm soát" chứ không trung lập,
+  vì nó trùng với điểm thiết kế của đúng một mô hình.
+
+- **Đã sửa trong phiên benchmark này (ghi lại để tiện đối chiếu với kết quả cũ):** MobileNetV3
+  từng có head riêng `Linear(960->256) + BatchNorm1d + SiLU + Dropout + Linear(256->3)` trong khi
+  3 mô hình pretrained kia chỉ `Dropout + Linear`, và ShuffleNetV2 từng dùng `Dropout(0.2)` thay
+  vì `0.3`. Sau khi đồng nhất, MobileNetV3 giảm từ 98.94% xuống 98.74% (params 3.22M -> 2.97M)
+  và ShuffleNetV2 từ 97.58% xuống 97.39% - cả hai đều **nằm trong độ lệch chuẩn**, nên hai khác
+  biệt cấu hình đó không phải nguyên nhân tạo ra thứ hạng. Tuy vậy nó đủ để **đảo ngôi đầu bảng**
+  giữa MobileNetV3 và EfficientNet-B0 - minh hoạ trực tiếp cho việc thứ hạng trong nhóm dẫn đầu
+  không mang thông tin.
 
 Số liệu chi tiết từng fold, kết quả sweep và confusion matrix: [`outputs/kfold/`](outputs/kfold/).
 
