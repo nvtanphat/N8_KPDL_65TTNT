@@ -107,9 +107,26 @@ nhưng thực chất thiên vị nhóm pretrained; công bằng đúng nghĩa l�
   ba mô hình này; chỉ BeanLeafLite là tách bạch hẳn khỏi phần còn lại.
 - **BeanLeafLite đạt 94.00% với 0.36 GFLOPs** - kém ResNet50 4 điểm nhưng rẻ hơn **67 lần** về
   FLOPs và **26 lần** về tham số. Đây mới là luận điểm của kiến trúc này, không phải độ chính xác.
-- **Giới hạn:** ShuffleNetV2 và BeanLeafLite đều chọn mép trên của lưới LR (3e-3); riêng
-  BeanLeafLite còn tăng đơn điệu (0.7488 → 0.7826 → 0.8744 → 0.9082) nên điểm tối ưu của nó có
-  thể nằm ngoài lưới đã quét.
+- **Giới hạn (đã ghi nhận, không khảo sát thêm):** lưới LR dừng ở 3e-3, và **2/5 mô hình chọn
+  đúng giá trị mép trên đó**. Kết quả sweep đầy đủ (internal-val accuracy sau 15 epoch):
+
+  | Mô hình | 1e-4 | 3e-4 | 1e-3 | 3e-3 | Chọn |
+  |---|:---:|:---:|:---:|:---:|:---:|
+  | EfficientNet-B0 | 97.10 | 99.03 | **99.52** | 99.03 | 1e-3 |
+  | MobileNetV3-Large | 97.10 | 98.55 | **99.03** | 98.55 | 1e-3 |
+  | ResNet50 | 97.58 | 98.07 | **98.55** | 97.58 | 1e-3 |
+  | ShuffleNetV2 | 97.10 | 99.03 | 98.55 | **99.52** | 3e-3 |
+  | BeanLeafLite | 74.88 | 78.26 | 87.44 | **90.82** | 3e-3 |
+
+  Ba mô hình đầu có cực đại nằm gọn trong lưới (giảm ở 3e-3) nên LR đã chọn là đáng tin.
+  ShuffleNetV2 và BeanLeafLite thì chưa: BeanLeafLite còn **tăng đơn điệu** qua cả 4 mốc
+  (74.88 → 78.26 → 87.44 → 90.82), tức điểm tối ưu của nó nhiều khả năng nằm **ngoài** lưới
+  và con số 94.00% trong bảng là **cận dưới**, không phải hiệu năng tốt nhất mà kiến trúc này
+  đạt được. Muốn biết chính xác thì phải nới lưới thêm (1e-2, 3e-2) cho **cả 5 mô hình** để
+  giữ nguyên điều kiện ngân sách tìm kiếm bằng nhau.
+
+  Một nhận xét đáng lưu ý từ bảng trên: **không mô hình nào chọn 3e-4** - giá trị vốn được
+  dùng làm learning rate chung cho tất cả trước khi có sweep.
 - **Giới hạn:** mọi mô hình đều chạy ở 384px, vốn nằm ngoài độ phân giải thiết kế (224px) của
   MobileNetV3 và ShuffleNetV2.
 
