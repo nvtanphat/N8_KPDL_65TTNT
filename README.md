@@ -54,17 +54,28 @@ Hệ thống **Deep Learning** toàn diện chẩn đoán và phân loại tổn
 
 ### Hiệu năng Mô hình Phân loại (Classification Benchmark)
 
-**Chỉ số chính là OOF Accuracy** (out-of-fold, 1034 ảnh), không phải Test Accuracy. Tập test
-chuẩn chỉ có 133 ảnh nên đã chạm trần: ResNet50 đạt Test Acc cao nhất (99.85%) nhưng chỉ xếp
-thứ 3 theo OOF - cột Test không còn khả năng phân giải giữa các mô hình.
+**Chỉ số chính là Cross-Validation Accuracy**: trung bình ± độ lệch chuẩn qua **5 fold**, đo
+trên phần dữ liệu mà mỗi fold không nhìn thấy khi huấn luyện (tổng cộng phủ đủ 1034 ảnh train).
+Không dùng Test Accuracy làm chỉ số chính vì tập test chuẩn chỉ có 133 ảnh và đã chạm trần:
+ResNet50 đạt Test Acc cao nhất (99.85%) nhưng chỉ xếp thứ 3 theo Cross-Validation.
 
-| Mô hình | LR | **OOF Accuracy** | CI 95% | Test Accuracy | Params | GFLOPs | Đặc trưng Kiến trúc |
+| Mô hình | LR | **CV Accuracy (5 fold)** | CI 95% | Test Accuracy | Params | GFLOPs | Đặc trưng Kiến trúc |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| **MobileNetV3-Large** | 1e-3 | **98.94%** | 98.11-99.40 | 99.70 ± 0.41% | 3.22M | 1.25 | Tối ưu suy luận thực địa cho thiết bị Edge |
-| **EfficientNet-B0** | 1e-3 | **98.84%** | 97.98-99.33 | 99.40 ± 0.63% | 4.01M | 2.26 | Compound Scaling cân bằng hiệu năng & tài nguyên |
-| **ResNet50** | 1e-3 | **98.07%** | 97.03-98.74 | 99.85 ± 0.34% | 23.51M | 24.02 | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
-| **ShuffleNetV2** (x1.0) | 3e-3 | **97.58%** | 96.46-98.36 | 98.65 ± 0.63% | 1.26M | 0.85 | Channel Shuffle & Inverted Residual cho di động |
-| **BeanLeafLite** (Custom CNN) | 3e-3 | **94.00%** | 92.39-95.29 | 93.53 ± 2.41% | 0.91M | 0.36 | Depthwise-Separable + Residual + SE Attention |
+| **MobileNetV3-Large** | 1e-3 | **98.94 ± 1.10%** | 98.11-99.40 | 99.70 ± 0.41% | 3.22M | 1.25 | Tối ưu suy luận thực địa cho thiết bị Edge |
+| **EfficientNet-B0** | 1e-3 | **98.84 ± 0.73%** | 97.98-99.33 | 99.40 ± 0.63% | 4.01M | 2.26 | Compound Scaling cân bằng hiệu năng & tài nguyên |
+| **ResNet50** | 1e-3 | **98.07 ± 1.49%** | 97.03-98.74 | 99.85 ± 0.34% | 23.51M | 24.02 | Mạng cuộn sâu Residual Skip Connections tiêu chuẩn |
+| **ShuffleNetV2** (x1.0) | 3e-3 | **97.58 ± 1.78%** | 96.46-98.36 | 98.65 ± 0.63% | 1.26M | 0.85 | Channel Shuffle & Inverted Residual cho di động |
+| **BeanLeafLite** (Custom CNN) | 3e-3 | **94.00 ± 1.23%** | 92.39-95.29 | 93.53 ± 2.41% | 0.91M | 0.36 | Depthwise-Separable + Residual + SE Attention |
+
+Accuracy từng fold (dùng để tính cột CV Accuracy):
+
+| Mô hình | Fold 1 | Fold 2 | Fold 3 | Fold 4 | Fold 5 |
+|---|:---:|:---:|:---:|:---:|:---:|
+| MobileNetV3-Large | 99.52 | 99.03 | 97.10 | 100.00 | 99.03 |
+| EfficientNet-B0 | 99.03 | 99.52 | 97.58 | 99.03 | 99.03 |
+| ResNet50 | 99.03 | 99.03 | 95.65 | 97.58 | 99.03 |
+| ShuffleNetV2 | 99.03 | 96.62 | 95.17 | 99.52 | 97.57 |
+| BeanLeafLite | 94.69 | 95.17 | 93.24 | 94.69 | 92.23 |
 
 ### Giao thức Đánh giá (Benchmark Protocol)
 
@@ -77,8 +88,10 @@ một quy trình huấn luyện**, không mô hình nào có ngoại lệ:
   15 epoch trên tập internal-validation. Mỗi mô hình được thử **đúng 4 lần như nhau**.
 - Tập test (`val_dir`) không tham gia chọn siêu tham số, không tham gia chọn checkpoint, chỉ
   được đánh giá đúng 1 lần sau khi huấn luyện xong.
-- **OOF Accuracy** = gộp dự đoán out-of-fold của cả 5 fold, phủ toàn bộ 1034 ảnh train. Đây là
-  ước lượng có khoảng tin cậy hẹp hơn 3 lần so với đo trên 133 ảnh test.
+- **CV Accuracy** = trung bình ± độ lệch chuẩn accuracy của 5 fold. Vì các fold gần bằng nhau
+  về kích thước, con số này trùng khít với accuracy tính bằng cách gộp toàn bộ dự đoán
+  out-of-fold lại (1034 ảnh) - cột CI 95% được tính trên tập gộp đó, và hẹp hơn 3 lần so với
+  khoảng tin cậy khi chỉ đo trên 133 ảnh test.
 
 Vì sao cần sweep LR thay vì ép chung một giá trị: `lr=3e-4` là learning rate kinh điển để
 *fine-tune* mô hình pretrained, quá nhỏ với mô hình *train from-scratch*. Thực nghiệm xác nhận
@@ -88,8 +101,10 @@ nhưng thực chất thiên vị nhóm pretrained; công bằng đúng nghĩa l�
 
 ### Nhận định & Giới hạn
 
-- **MobileNetV3-Large và EfficientNet-B0 tương đương nhau trong sai số** - chênh 0.10 điểm với
-  khoảng tin cậy chồng gần như hoàn toàn. Không có cơ sở tuyên bố mô hình nào tốt hơn.
+- **Ba mô hình dẫn đầu tương đương nhau trong sai số.** MobileNetV3 (98.94 ± 1.10%),
+  EfficientNet-B0 (98.84 ± 0.73%) và ResNet50 (98.07 ± 1.49%) có độ lệch chuẩn giữa các fold
+  lớn hơn khoảng cách giữa chúng, khoảng tin cậy cũng chồng lên nhau. Không có cơ sở xếp hạng
+  ba mô hình này; chỉ BeanLeafLite là tách bạch hẳn khỏi phần còn lại.
 - **BeanLeafLite đạt 94.00% với 0.36 GFLOPs** - kém ResNet50 4 điểm nhưng rẻ hơn **67 lần** về
   FLOPs và **26 lần** về tham số. Đây mới là luận điểm của kiến trúc này, không phải độ chính xác.
 - **Giới hạn:** ShuffleNetV2 và BeanLeafLite đều chọn mép trên của lưới LR (3e-3); riêng
